@@ -1,16 +1,10 @@
-export default function AdminPage() {
-  const submissions = [
-    {
-      title: "Friday Islamic Lecture",
-      district: "Malappuram",
-      speaker: "Usthad Abdul Rahman",
-    },
-    {
-      title: "Youth Quran Camp",
-      district: "Kozhikode",
-      speaker: "Shafi Usthad",
-    },
-  ];
+import { supabase } from "@/lib/supabase";
+
+export default async function AdminPage() {
+  const { data: submissions } = await supabase
+    .from("events")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   return (
     <main className="min-h-screen bg-gray-50 px-6 py-16">
@@ -19,9 +13,9 @@ export default function AdminPage() {
       </h1>
 
       <div className="grid gap-6">
-        {submissions.map((submission, index) => (
+        {submissions?.map((submission) => (
           <div
-            key={index}
+            key={submission.id}
             className="bg-white rounded-2xl shadow-md p-6"
           >
             <h2 className="text-2xl font-bold">
@@ -29,16 +23,7 @@ export default function AdminPage() {
             </h2>
             <p>{submission.district}</p>
             <p>{submission.speaker}</p>
-
-            <div className="flex gap-4 mt-4">
-              <button className="bg-emerald-600 text-white px-4 py-2 rounded-xl">
-                Approve
-              </button>
-
-              <button className="bg-red-600 text-white px-4 py-2 rounded-xl">
-                Delete
-              </button>
-            </div>
+            <p>{submission.event_date}</p>
           </div>
         ))}
       </div>
