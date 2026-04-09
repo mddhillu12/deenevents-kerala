@@ -22,7 +22,7 @@ export default function HomePage() {
       const { data } = await supabase
         .from("events")
         .select("*")
-        .eq("approved", false)
+        .eq("approved", true)
         .order("created_at", { ascending: false });
 
       setEvents(data || []);

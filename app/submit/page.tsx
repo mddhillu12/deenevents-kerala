@@ -10,6 +10,7 @@ export default function SubmitPage() {
   const [eventDate, setEventDate] = useState("");
   const [speaker, setSpeaker] = useState("");
   const [description, setDescription] = useState("");
+  const [poster, setPoster] = useState<File | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -77,6 +78,13 @@ export default function SubmitPage() {
             placeholder="Speaker"
             className="w-full border rounded-xl px-4 py-3"
           />
+          <input
+  type="file"
+  accept="image/*"
+  onChange={(e) => setPoster(e.target.files?.[0] || null)}
+  className="w-full border rounded-xl px-4 py-3"
+/>
+
 
           <textarea
             rows={5}
