@@ -31,9 +31,10 @@ export default function HomePage() {
     loadEvents();
   }, []);
 
-  const filteredEvents = events.filter((event) =>
-    event.title.toLowerCase().includes(search.toLowerCase()) ||
-    event.district.toLowerCase().includes(search.toLowerCase())
+  const filteredEvents = events.filter(
+    (event) =>
+      event.title.toLowerCase().includes(search.toLowerCase()) ||
+      event.district.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -44,12 +45,21 @@ export default function HomePage() {
           DeenEvents Kerala
         </h1>
 
-        <Link
-          href="/submit"
-          className="bg-emerald-500 hover:bg-emerald-600 px-5 py-2 rounded-xl"
-        >
-          Submit Event
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href="/submit"
+            className="bg-emerald-500 hover:bg-emerald-600 px-5 py-2 rounded-xl"
+          >
+            Submit Event
+          </Link>
+
+          <Link
+            href="/poster"
+            className="bg-white/10 hover:bg-white/20 px-5 py-2 rounded-xl"
+          >
+            AI Poster
+          </Link>
+        </div>
       </nav>
 
       {/* Hero */}
@@ -59,7 +69,7 @@ export default function HomePage() {
         </h2>
 
         <p className="text-gray-300 max-w-2xl mx-auto mb-10">
-          Discover Islamic lectures, dars, camps and community events
+          Discover lectures, dars, youth camps and community events
           happening across Kerala district-wise.
         </p>
 
@@ -89,7 +99,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Live Events */}
+      {/* Events */}
       <section className="max-w-6xl mx-auto px-6 pb-20">
         <h2 className="text-3xl font-bold mb-8">Latest Programmes</h2>
 
