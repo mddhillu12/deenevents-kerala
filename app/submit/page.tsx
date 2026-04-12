@@ -57,6 +57,7 @@ export default function SubmitPage() {
       approved: false, // Wait for admin approval
     });
 
+    
     setLoading(false);
 
     if (error) {
