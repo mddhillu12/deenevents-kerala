@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { Sparkles } from "lucide-react";
+import { Sparkles, CheckCircle2 } from "lucide-react";
 
 export default function SubmitPage() {
   const [title, setTitle] = useState("");
@@ -12,14 +12,17 @@ export default function SubmitPage() {
   const [eventDate, setEventDate] = useState("");
   const [speaker, setSpeaker] = useState("");
   const [description, setDescription] = useState("");
-  const [organization, setOrganization] =
-    useState("User Submission");
+  const [organization, setOrganization] = useState("User Submission");
   const [poster, setPoster] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   function generateDescription() {
-    const autoText = `Join us for ${title}, a beneficial Islamic programme led by ${speaker} at ${venue} in ${district}. This session will provide valuable reminders, spiritual guidance, and practical lessons for daily life. Everyone is warmly welcome to attend and benefit.`;
-
+    if (!title || !speaker) {
+        alert("Please enter a Title and Speaker first!");
+        return;
+    }
+    const autoText = `Join us for ${title}, a beneficial Islamic programme led by ${speaker} at ${venue} in ${district}. This session will provide valuable reminders and spiritual guidance. Everyone is warmly welcome.`;
     setDescription(autoText);
   }
 
@@ -29,19 +32,15 @@ export default function SubmitPage() {
 
     let posterUrl = "";
 
-    // Upload poster if selected
     if (poster) {
-      const fileName = `${Date.now()}-${poster.name}`;
-
+      // Clean filename for Supabase
+      const fileName = `${Date.now()}-${poster.name.replace(/\s+/g, '-')}`;
       const { error: uploadError } = await supabase.storage
         .from("posters")
         .upload(fileName, poster);
 
       if (!uploadError) {
-        const { data } = supabase.storage
-          .from("posters")
-          .getPublicUrl(fileName);
-
+        const { data } = supabase.storage.from("posters").getPublicUrl(fileName);
         posterUrl = data.publicUrl;
       }
     }
@@ -55,131 +54,92 @@ export default function SubmitPage() {
       description,
       organization,
       poster_url: posterUrl,
-      approved: false,
+      approved: false, // Wait for admin approval
     });
 
     setLoading(false);
 
     if (error) {
-      alert("Submission failed");
+      alert("Submission failed: " + error.message);
       return;
     }
 
-    alert("Programme submitted successfully!");
-    const message = `🕌 *${title}*\n📍 ${venue}, ${district}\n📅 ${eventDate}\n🎤 ${speaker}\n\n${description}`;
+    setSubmitted(true);
+    
+    // WhatsApp Share
+    const message = `🕌 *${title}*\n📍 ${venue}, ${district}\n📅 ${eventDate}\n🎤 ${speaker}\n\nSubmitted to DeenEvents Kerala!`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+  }
 
-window.open(
-  `https://wa.me/?text=${encodeURIComponent(message)}`,
-  "_blank"
-);
-
-
-    setTitle("");
-    setDistrict("");
-    setVenue("");
-    setEventDate("");
-    setSpeaker("");
-    setDescription("");
-    setPoster(null);
+  if (submitted) {
+    return (
+        <main className="min-h-screen bg-gray-950 text-white flex items-center justify-center p-6">
+            <div className="text-center space-y-6 bg-white/5 p-12 rounded-[3rem] border border-white/10">
+                <CheckCircle2 className="w-20 h-20 text-emerald-500 mx-auto" />
+                <h1 className="text-3xl font-bold">Submitted Successfully!</h1>
+                <p className="text-gray-400">Your event is waiting for admin approval.</p>
+                <button onClick={() => setSubmitted(false)} className="text-emerald-400 font-bold underline">Submit another</button>
+            </div>
+        </main>
+    );
   }
 
   return (
     <main className="min-h-screen bg-gray-950 text-white px-6 py-16">
-      <div className="max-w-3xl mx-auto bg-white/5 border border-white/10 rounded-3xl p-10 shadow-2xl">
-        <h1 className="text-4xl font-bold mb-2">
-          Submit a Programme
-        </h1>
-        <p className="text-gray-400 mb-8">
-          Add Islamic programmes happening across Kerala.
-        </p>
+      <div className="max-w-3xl mx-auto bg-white/5 border border-white/10 rounded-[2.5rem] p-8 md:p-12 shadow-2xl backdrop-blur-md">
+        <h1 className="text-4xl font-bold mb-2">Submit Programme</h1>
+        <p className="text-gray-400 mb-8">Add Islamic events happening across Kerala.</p>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Programme Title"
-            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-emerald-500"
-          />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Programme Title" className="input-style" required />
+            <input value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="District (e.g. Malappuram)" className="input-style" required />
+          </div>
 
-          <input
-            value={district}
-            onChange={(e) => setDistrict(e.target.value)}
-            placeholder="District"
-            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-emerald-500"
-          />
+          <input value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="Venue / Masjid Name" className="input-style" required />
 
-          <input
-            value={venue}
-            onChange={(e) => setVenue(e.target.value)}
-            placeholder="Venue"
-            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-emerald-500"
-          />
+          <div className="grid md:grid-cols-2 gap-4">
+            <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="input-style" required />
+            <input value={speaker} onChange={(e) => setSpeaker(e.target.value)} placeholder="Speaker Name" className="input-style" required />
+          </div>
 
-          <input
-            type="date"
-            value={eventDate}
-            onChange={(e) => setEventDate(e.target.value)}
-            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-emerald-500"
-          />
-
-          <input
-            value={speaker}
-            onChange={(e) => setSpeaker(e.target.value)}
-            placeholder="Speaker"
-            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-emerald-500"
-          />
-
-          {/* AI DESCRIPTION */}
-          <button
-            type="button"
-            onClick={generateDescription}
-            className="w-full bg-purple-600 hover:bg-purple-500 py-3 rounded-xl font-semibold flex items-center justify-center gap-2"
-          >
-            <Sparkles className="w-4 h-4" />
-            Generate AI Description
+          <button type="button" onClick={generateDescription} className="w-full bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 py-3 rounded-xl border border-indigo-500/30 flex items-center justify-center gap-2 transition-all">
+            <Sparkles className="w-4 h-4" /> AI Description
           </button>
 
-          <textarea
-            rows={5}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Programme Description"
-            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-emerald-500"
-          />
+          <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Write something about the event..." className="input-style" />
 
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) =>
-              setPoster(e.target.files?.[0] || null)
-            }
-            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3"
-          />
+          <div className="space-y-2">
+            <label className="text-xs text-gray-500 ml-2">UPLOAD POSTER (OPTIONAL)</label>
+            <input type="file" accept="image/*" onChange={(e) => setPoster(e.target.files?.[0] || null)} className="input-style" />
+          </div>
 
-          {/* ACTION BUTTONS */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <button
-              disabled={loading}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-2xl font-bold"
-            >
-              {loading ? "Submitting..." : "Submit Programme"}
+          <div className="grid md:grid-cols-2 gap-4 pt-4">
+            <button disabled={loading} className="bg-emerald-600 hover:bg-emerald-500 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-emerald-900/20">
+              {loading ? "Processing..." : "Submit to Public"}
             </button>
 
-            <Link
-              href={`/poster?title=${encodeURIComponent(
-                title
-              )}&speaker=${encodeURIComponent(
-                speaker
-              )}&venue=${encodeURIComponent(
-                venue
-              )}&date=${encodeURIComponent(eventDate)}`}
-              className="w-full bg-purple-700 hover:bg-purple-600 py-4 rounded-2xl font-bold text-center"
-            >
-              Generate Poster
+            <Link href={`/poster?title=${encodeURIComponent(title)}&speaker=${encodeURIComponent(speaker)}&venue=${encodeURIComponent(venue)}&date=${encodeURIComponent(eventDate)}`} className="bg-white/10 hover:bg-white/20 py-4 rounded-2xl font-bold text-center transition-all">
+              Create AI Poster
             </Link>
           </div>
         </form>
       </div>
+
+      <style jsx>{`
+        .input-style {
+          width: 100%;
+          border-radius: 1rem;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 0.75rem 1rem;
+          outline: none;
+          transition: border-color 0.2s;
+        }
+        .input-style:focus {
+          border-color: #10b981;
+        }
+      `}</style>
     </main>
   );
 }
