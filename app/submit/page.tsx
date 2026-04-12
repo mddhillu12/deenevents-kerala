@@ -1,9 +1,9 @@
 "use client";
-import { Sparkles } from "lucide-react";
 
 import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { Sparkles } from "lucide-react";
 
 export default function SubmitPage() {
   const [title, setTitle] = useState("");
@@ -12,9 +12,16 @@ export default function SubmitPage() {
   const [eventDate, setEventDate] = useState("");
   const [speaker, setSpeaker] = useState("");
   const [description, setDescription] = useState("");
-  const [organization, setOrganization] = useState("User Submission");
+  const [organization, setOrganization] =
+    useState("User Submission");
   const [poster, setPoster] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+
+  function generateDescription() {
+    const autoText = `Join us for ${title}, a beneficial Islamic programme led by ${speaker} at ${venue} in ${district}. This session will provide valuable reminders, spiritual guidance, and practical lessons for daily life. Everyone is warmly welcome to attend and benefit.`;
+
+    setDescription(autoText);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -22,7 +29,7 @@ export default function SubmitPage() {
 
     let posterUrl = "";
 
-    // ✅ upload poster if selected
+    // Upload poster if selected
     if (poster) {
       const fileName = `${Date.now()}-${poster.name}`;
 
@@ -59,6 +66,13 @@ export default function SubmitPage() {
     }
 
     alert("Programme submitted successfully!");
+    const message = `🕌 *${title}*\n📍 ${venue}, ${district}\n📅 ${eventDate}\n🎤 ${speaker}\n\n${description}`;
+
+window.open(
+  `https://wa.me/?text=${encodeURIComponent(message)}`,
+  "_blank"
+);
+
 
     setTitle("");
     setDistrict("");
@@ -68,11 +82,6 @@ export default function SubmitPage() {
     setDescription("");
     setPoster(null);
   }
-function generateDescription() {
-  const autoText = `Join us for ${title}, a beneficial Islamic programme led by ${speaker} at ${venue} in ${district}. This session will provide valuable reminders, spiritual guidance, and practical lessons for daily life. Everyone is warmly welcome to attend and benefit.`;
-
-  setDescription(autoText);
-}
 
   return (
     <main className="min-h-screen bg-gray-950 text-white px-6 py-16">
@@ -114,21 +123,21 @@ function generateDescription() {
           />
 
           <input
-          
             value={speaker}
             onChange={(e) => setSpeaker(e.target.value)}
             placeholder="Speaker"
             className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-emerald-500"
           />
-          <button
-  type="button"
-  onClick={generateDescription}
-  className="w-full bg-purple-600 hover:bg-purple-500 py-3 rounded-xl font-semibold flex items-center justify-center gap-2"
->
-  <Sparkles className="w-4 h-4" />
-  Generate AI Description
-</button>
 
+          {/* AI DESCRIPTION */}
+          <button
+            type="button"
+            onClick={generateDescription}
+            className="w-full bg-purple-600 hover:bg-purple-500 py-3 rounded-xl font-semibold flex items-center justify-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            Generate AI Description
+          </button>
 
           <textarea
             rows={5}
@@ -164,7 +173,7 @@ function generateDescription() {
               )}&venue=${encodeURIComponent(
                 venue
               )}&date=${encodeURIComponent(eventDate)}`}
-              className="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-2xl font-bold text-center"
+              className="w-full bg-purple-700 hover:bg-purple-600 py-4 rounded-2xl font-bold text-center"
             >
               Generate Poster
             </Link>
