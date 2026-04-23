@@ -151,8 +151,7 @@ export default function HomePage() {
 
                 <div className="grid grid-cols-2 gap-2 mt-8">
                     <button 
-                      onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue + " " + event.district)}`, '_blank')}
-                      className="py-3 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest"
+onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue + " " + event.district)}`, '_blank')}                      className="py-3 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest"
                     >Navigate</button>
                     <Link 
   href={`/poster?title=${event.title}&speaker=${event.speaker}&venue=${event.venue}&date=${event.event_date}&district=${event.district}&organization=DeenEvents`}

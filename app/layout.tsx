@@ -12,10 +12,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata = {
+// Added explicit : Metadata type here
+export const metadata: Metadata = {
   title: "DeenEvents Kerala",
-  description:
-    "Find Islamic programmes, lectures, dars, khutbahs and events across Kerala.",
+  description: "Find Islamic programmes, lectures, dars, khutbahs and events across Kerala.",
   keywords: [
     "Kerala Islamic events",
     "Islamic programmes Kerala",
@@ -25,18 +25,13 @@ export const metadata = {
   ],
 };
 
- 
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
