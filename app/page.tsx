@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { 
-  Search, MapPin, Calendar, Plus, Moon, Sun, Compass 
+  Search, MapPin, Calendar, Moon, Sun 
 } from "lucide-react";
 
 export default function HomePage() {
@@ -20,8 +20,6 @@ export default function HomePage() {
 
   useEffect(() => {
     async function init() {
-      // --- THE FIX IS HERE ---
-      // We removed .eq('approved', true) so you can see your test events
       const { data, error } = await supabase
         .from("events")
         .select("*")
@@ -31,20 +29,26 @@ export default function HomePage() {
       setEvents(data || []);
       setLoading(false);
 
-      // Kerala Hijri Date Logic
-      const date = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn', {
-        day: 'numeric', month: 'long', year: 'numeric'
-      }).format(new Date());
-      setHijriDate(date);
+      try {
+        const date = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn', {
+          day: 'numeric', month: 'long', year: 'numeric'
+        }).format(new Date());
+        setHijriDate(date);
+      } catch (e) {
+        setHijriDate("");
+      }
 
-      // Prayer Times API
       fetch("https://api.aladhan.com/v1/timingsByCity?city=Malappuram&country=India&method=2")
         .then(res => res.json())
-        .then(data => setPrayerTimes(data.data.timings));
+        .then(data => {
+          if (data?.data?.timings) {
+            setPrayerTimes(data.data.timings);
+          }
+        })
+        .catch(err => console.error(err));
     }
     init();
 
-    // Theme logic
     const theme = localStorage.getItem("theme") || "dark";
     setDarkMode(theme === "dark");
     if (theme === "dark") document.documentElement.classList.add("dark");
@@ -57,7 +61,6 @@ export default function HomePage() {
     localStorage.setItem("theme", newMode ? "dark" : "light");
   };
 
-  // --- DISTRICT CASE-SENSITIVITY FIX ---
   const filteredEvents = useMemo(() => {
     return events.filter(e => {
       const searchTerm = search.toLowerCase();
@@ -84,10 +87,12 @@ export default function HomePage() {
         </Link>
         
         <div className="flex items-center gap-4">
-          <div className="hidden md:block text-right">
+          {hijriDate && (
+            <div className="hidden md:block text-right">
               <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Islamic Date</p>
               <p className="text-xs font-bold text-emerald-500">{hijriDate}</p>
-          </div>
+            </div>
+          )}
           <button onClick={toggleTheme} className="p-2 rounded-lg bg-black/5 dark:bg-white/5">
             {darkMode ? <Sun size={18} /> : <Moon size={18} />}
           </button>
@@ -135,7 +140,9 @@ export default function HomePage() {
       {/* LIST */}
       <section className="max-w-7xl mx-auto px-6 pb-20">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {loading ? <p className="text-center col-span-full font-bold animate-pulse">Loading events...</p> :
+          {loading ? (
+            <p className="text-center col-span-full font-bold animate-pulse">Loading events...</p>
+          ) : (
             filteredEvents.map(event => (
               <div key={event.id} className="bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-[2rem] p-8 shadow-xl flex flex-col justify-between">
                 <div>
@@ -151,18 +158,17 @@ export default function HomePage() {
 
                 <div className="grid grid-cols-2 gap-2 mt-8">
                     <button 
-// Use backticks (`) and ${} correctly
-onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue + " " + event.district)}`, '_blank')}                      className="py-3 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest"
+                      onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent((event.venue || '') + ' ' + (event.district || ''))}`, '_blank')} 
+                      className="py-3 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest"
                     >Navigate</button>
                     <Link 
-  href={`/poster?title=${event.title}&speaker=${event.speaker}&venue=${event.venue}&date=${event.event_date}&district=${event.district}&organization=DeenEvents`}
+                      href={`/poster?title=${encodeURIComponent(event.title || '')}&speaker=${encodeURIComponent(event.speaker || '')}&venue=${encodeURIComponent(event.venue || '')}&date=${encodeURIComponent(event.event_date || '')}&district=${encodeURIComponent(event.district || '')}&organization=DeenEvents`}
                       className="py-3 bg-white/10 text-center rounded-xl text-[9px] font-black uppercase tracking-widest"
                     >Poster</Link>
                 </div>
               </div>
             ))
-            
-          }
+          )}
         </div>
       </section>
     </main>

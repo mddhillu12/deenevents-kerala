@@ -1,6 +1,6 @@
 'use client'
-import { createClient } from '@/utils/supabase/client' // Adjust path to your client helper
-
+'use client'
+import { createClient } from '../utils/supabase/client' // Fixed path
 export default function LoginButton() {
   const supabase = createClient()
 
@@ -8,15 +8,16 @@ export default function LoginButton() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // This MUST match your Cloudflare URL + /auth/callback
         redirectTo: `https://deenevents-kerala.mddhillu12.workers.dev/auth/callback`,
       },
     })
   }
 
   return (
-    <button onClick={handleLogin} className="bg-white text-black p-2 rounded shadow">
-      Sign in with Google
-    </button>
+    <main className="min-h-screen bg-[#020405] flex items-center justify-center p-6">
+      <button onClick={handleLogin} className="bg-white text-black font-bold py-3 px-6 rounded-xl shadow">
+        Sign in with Google
+      </button>
+    </main>
   )
 }

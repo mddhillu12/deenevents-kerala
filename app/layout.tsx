@@ -12,7 +12,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Added explicit : Metadata type here
 export const metadata: Metadata = {
   title: "DeenEvents Kerala",
   description: "Find Islamic programmes, lectures, dars, khutbahs and events across Kerala.",

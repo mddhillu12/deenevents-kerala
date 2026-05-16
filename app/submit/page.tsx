@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "../utils/supabase/client"; // Fixed path
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, ArrowLeft, LogIn } from "lucide-react";
@@ -13,13 +13,16 @@ export default function SubmitPage() {
   const [user, setUser] = useState<any>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [formData, setFormData] = useState({ title: "", speaker: "", district: "", venue: "", event_date: "" });
 
+  const supabase = createClient();
+
   useEffect(() => {
-    // Check if user is logged in
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+      setCheckingAuth(false);
     };
     getUser();
   }, []);
@@ -27,7 +30,9 @@ export default function SubmitPage() {
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/submit' }
+      options: { 
+        redirectTo: window.location.origin + '/auth/callback?next=/submit' 
+      }
     });
   };
 
@@ -36,21 +41,36 @@ export default function SubmitPage() {
     if (!user) return;
     setLoading(true);
     
-    // We set approved: false now because it's a public submission
     const { error } = await supabase.from("events").insert([
-      { ...formData, approved: false, user_id: user.id }
+      { 
+        title: formData.title,
+        speaker: formData.speaker,
+        district: formData.district,
+        venue: formData.venue,
+        event_date: formData.event_date,
+        approved: false, 
+        user_id: user.id 
+      }
     ]);
     
     if (!error) {
       setSubmitted(true);
       router.refresh();
     } else {
-      alert("Error: Make sure your Supabase table has a 'user_id' column!");
+      console.error(error);
+      alert(`Submission failed: ${error.message}`);
     }
     setLoading(false);
   }
 
-  // --- SHOW LOGIN SCREEN IF NOT LOGGED IN ---
+  if (checkingAuth) {
+    return (
+      <main className="min-h-screen bg-[#020405] text-white flex flex-col items-center justify-center">
+        <p className="font-bold text-sm animate-pulse text-emerald-500 uppercase tracking-widest">Checking authorization...</p>
+      </main>
+    );
+  }
+
   if (!user) {
     return (
       <main className="min-h-screen bg-[#020405] text-white flex flex-col items-center justify-center p-6 text-center">
@@ -69,7 +89,6 @@ export default function SubmitPage() {
     );
   }
 
-  // --- SHOW SUCCESS SCREEN ---
   if (submitted) {
     return (
       <main className="min-h-screen bg-[#020405] text-white flex flex-col items-center justify-center p-6 text-center">
@@ -81,7 +100,6 @@ export default function SubmitPage() {
     );
   }
 
-  // --- SHOW FORM ---
   return (
     <main className="min-h-screen bg-[#020405] text-white p-6">
         <div className="max-w-xl mx-auto py-10">
@@ -91,10 +109,12 @@ export default function SubmitPage() {
             <h2 className="text-4xl font-black mb-10 italic tracking-tighter">Post an <span className="text-emerald-500">Event.</span></h2>
             
             <div className="bg-white/5 p-4 rounded-2xl mb-8 flex items-center gap-4 border border-white/10">
-              <img src={user.user_metadata.avatar_url} className="w-10 h-10 rounded-full border border-emerald-500" />
+              {user.user_metadata?.avatar_url && (
+                <img src={user.user_metadata.avatar_url} alt="avatar" className="w-10 h-10 rounded-full border border-emerald-500" />
+              )}
               <div>
                 <p className="text-[10px] font-black uppercase text-emerald-500">Posting as</p>
-                <p className="text-sm font-bold">{user.user_metadata.full_name}</p>
+                <p className="text-sm font-bold">{user.user_metadata?.full_name || "User"}</p>
               </div>
             </div>
 

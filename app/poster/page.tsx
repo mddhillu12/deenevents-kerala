@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { toPng } from "html-to-image";
-import { Download, Palette, Moon, ArrowLeft } from "lucide-react";
+import { Palette, Moon, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 type PosterData = {
@@ -38,8 +38,7 @@ const templates = {
 function PosterBuilderContent() {
   const searchParams = useSearchParams();
   const posterRef = useRef<HTMLDivElement>(null);
-  const [template, setTemplate] =
-    useState<keyof typeof templates>("emerald");
+  const [template, setTemplate] = useState<keyof typeof templates>("emerald");
   const [isDownloading, setIsDownloading] = useState(false);
 
   const [data, setData] = useState<PosterData>({
@@ -47,8 +46,7 @@ function PosterBuilderContent() {
     speaker: searchParams.get("speaker") || "Usthad Abdul Rahman",
     venue: searchParams.get("venue") || "Central Masjid, Malappuram",
     date: searchParams.get("date") || "Friday • After Maghrib",
-    organization:
-      searchParams.get("organization") || "DeenEvents Kerala",
+    organization: searchParams.get("organization") || "DeenEvents Kerala",
   });
 
   const active = useMemo(() => templates[template], [template]);
@@ -115,9 +113,8 @@ function PosterBuilderContent() {
             {Object.entries(templates).map(([key, value]) => (
               <button
                 key={key}
-                onClick={() =>
-                  setTemplate(key as keyof typeof templates)
-                }
+                type="button"
+                onClick={() => setTemplate(key as keyof typeof templates)}
                 className={`py-4 rounded-2xl border text-xs font-bold ${
                   template === key
                     ? "border-emerald-500 bg-emerald-500/10"
@@ -132,51 +129,38 @@ function PosterBuilderContent() {
           <div className="space-y-4">
             <input
               value={data.title}
-              onChange={(e) =>
-                updateField("title", e.target.value)
-              }
+              onChange={(e) => updateField("title", e.target.value)}
               placeholder="Title"
               className="w-full rounded-2xl bg-white/5 border border-white/10 px-6 py-4"
             />
-
             <input
               value={data.speaker}
-              onChange={(e) =>
-                updateField("speaker", e.target.value)
-              }
+              onChange={(e) => updateField("speaker", e.target.value)}
               placeholder="Speaker"
               className="w-full rounded-2xl bg-white/5 border border-white/10 px-6 py-4"
             />
-
             <input
               value={data.venue}
-              onChange={(e) =>
-                updateField("venue", e.target.value)
-              }
+              onChange={(e) => updateField("venue", e.target.value)}
               placeholder="Venue"
               className="w-full rounded-2xl bg-white/5 border border-white/10 px-6 py-4"
             />
-
             <input
               value={data.date}
-              onChange={(e) =>
-                updateField("date", e.target.value)
-              }
+              onChange={(e) => updateField("date", e.target.value)}
               placeholder="Date"
               className="w-full rounded-2xl bg-white/5 border border-white/10 px-6 py-4"
             />
-
             <input
               value={data.organization}
-              onChange={(e) =>
-                updateField("organization", e.target.value)
-              }
+              onChange={(e) => updateField("organization", e.target.value)}
               placeholder="Organization"
               className="w-full rounded-2xl bg-white/5 border border-white/10 px-6 py-4"
             />
           </div>
 
           <button
+            type="button"
             onClick={downloadPoster}
             disabled={isDownloading}
             className="w-full bg-emerald-600 py-4 rounded-2xl font-bold"
@@ -191,12 +175,8 @@ function PosterBuilderContent() {
             className={`w-full max-w-[400px] aspect-[3/4] rounded-[3rem] bg-gradient-to-br ${active.bg} p-12 border-[12px] ${active.border} flex flex-col justify-between`}
           >
             <div>
-              <p className={`text-xs uppercase ${active.accent}`}>
-                Islamic Programme
-              </p>
-              <h2 className="text-5xl font-black italic mt-4">
-                {data.title}
-              </h2>
+              <p className={`text-xs uppercase ${active.accent}`}>Islamic Programme</p>
+              <h2 className="text-5xl font-black italic mt-4">{data.title}</h2>
             </div>
 
             <div>
@@ -205,9 +185,7 @@ function PosterBuilderContent() {
               <p>{data.date}</p>
             </div>
 
-            <p className={`text-sm font-bold ${active.accent}`}>
-              {data.organization}
-            </p>
+            <p className={`text-sm font-bold ${active.accent}`}>{data.organization}</p>
           </div>
         </section>
       </div>

@@ -6,13 +6,10 @@ type DistrictPageProps = {
   }>;
 };
 
-export default async function DistrictPage({
-  params,
-}: DistrictPageProps) {
+export default async function DistrictPage({ params }: DistrictPageProps) {
   const { slug } = await params;
 
-  const districtName =
-    slug.charAt(0).toUpperCase() + slug.slice(1);
+  const districtName = slug.charAt(0).toUpperCase() + slug.slice(1);
 
   const events = [
     {
