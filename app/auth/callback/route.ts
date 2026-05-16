@@ -23,8 +23,7 @@ export async function GET(request: Request) {
                 cookieStore.set(name, value, options)
               );
             } catch {
-              // The `setAll` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing user sessions.
+              // Safe fallback for server components
             }
           },
         },
@@ -37,6 +36,5 @@ export async function GET(request: Request) {
     }
   }
 
-  // Return the user to an error page or home directory if exchange failed
   return NextResponse.redirect(`${origin}/login?error=auth-callback-failed`);
 }
