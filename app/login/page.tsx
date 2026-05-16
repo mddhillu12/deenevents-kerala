@@ -1,8 +1,9 @@
-'use client'
-'use client'
-import { createClient } from '../utils/supabase/client' // Fixed path
+"use client";
+
+import { createClient } from '../utils/supabase/client';
+
 export default function LoginButton() {
-  const supabase = createClient()
+  const supabase = createClient();
 
   const handleLogin = async () => {
     await supabase.auth.signInWithOAuth({
@@ -10,8 +11,8 @@ export default function LoginButton() {
       options: {
         redirectTo: `https://deenevents-kerala.mddhillu12.workers.dev/auth/callback`,
       },
-    })
-  }
+    });
+  };
 
   return (
     <main className="min-h-screen bg-[#020405] flex items-center justify-center p-6">
@@ -19,5 +20,5 @@ export default function LoginButton() {
         Sign in with Google
       </button>
     </main>
-  )
+  );
 }

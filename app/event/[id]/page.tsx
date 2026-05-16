@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic"; // Forces Next.js to load this page live on request instead of at build time
 import { createClient } from "../../utils/supabase/server"; // Fixed path
 type EventPageProps = {
   params: Promise<{
