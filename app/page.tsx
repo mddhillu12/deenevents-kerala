@@ -90,8 +90,11 @@ export default function HomePage() {
     // 3. Dynamic Hybrid Feed Synchronizer
     async function fetchEvents() {
       try {
-        let { data, error } = await supabase.from("events").select("*").order("created_at", { ascending: false });
-        
+const { data, error } = await supabase
+  .from("events")
+  .select("*")
+  .eq("approved", true)
+  .order("event_date", { ascending: true });        
         if (!error && data && data.length > 0) {
           setEvents(data);
         } else {
