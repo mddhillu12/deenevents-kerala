@@ -1,5 +1,6 @@
-export const dynamic = "force-dynamic"; // Forces Next.js to load this page live on request instead of at build time
 "use client";
+
+export const dynamic = "force-dynamic"; // Forces Next.js to load this page live on request instead of at build time
 
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
@@ -159,7 +160,7 @@ export default function HomePage() {
 
                 <div className="grid grid-cols-2 gap-2 mt-8">
                     <button 
-                      onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent((event.venue || '') + ' ' + (event.district || ''))}`, '_blank')} 
+                      onClick={() => window.open(`http://googleusercontent.com/maps.google.com/?q=${encodeURIComponent((event.venue || '') + ' ' + (event.district || ''))}`, '_blank')} 
                       className="py-3 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest"
                     >Navigate</button>
                     <Link 
