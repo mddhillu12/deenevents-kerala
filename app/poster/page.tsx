@@ -1,11 +1,12 @@
 "use client";
 
+import { Suspense, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { useState, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, Image as ImageIcon, Sparkles, ShieldCheck, Sun, Moon } from "lucide-react";
+import { ArrowLeft, Download, Image as ImageIcon, Sparkles, ShieldCheck } from "lucide-react";
 
-export default function PosterPage() {
+// 1. Move your primary layout into an inner content rendering engine
+function PosterContent() {
   const searchParams = useSearchParams();
   const posterRef = useRef<HTMLDivElement>(null);
 
@@ -81,7 +82,7 @@ export default function PosterPage() {
               <div className="relative z-10 text-center space-y-4 my-auto">
                 <h2 className="text-lg font-black tracking-tight text-white leading-snug px-2 drop-shadow-md">
                   {title}
-                </h2>
+                </h2> 
 
                 {/* SCHOLAR PRESENTATION IMAGE EMBED MOCK INSIDE COMPONENT CANVAS */}
                 <div className="w-24 h-24 mx-auto rounded-full border-2 overflow-hidden bg-slate-950 flex items-center justify-center relative shadow-xl" style={{ borderColor: accentTheme === "emerald" ? "#10b981" : "#f59e0b" }}>
@@ -160,5 +161,19 @@ export default function PosterPage() {
 
       </div>
     </div>
+  );
+}
+
+// 2. Main default export safely managing Next.js Client Side Bailouts via Suspense
+export default function PosterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#030509] flex flex-col items-center justify-center text-xs font-bold text-slate-500 uppercase tracking-widest gap-2">
+        <div className="w-5 h-5 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+        <span>Generating Poster Canvas...</span>
+      </div>
+    }>
+      <PosterContent />
+    </Suspense>
   );
 }
