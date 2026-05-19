@@ -1,179 +1,218 @@
 "use client";
 
-import { Suspense, useState, useRef } from "react";
-import { useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, Download, Image as ImageIcon, Sparkles, ShieldCheck } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { Edit2, Save, X, Trash2, ArrowLeft, Loader2, Image as ImageIcon, MapPin, Calendar, Clock, User } from "lucide-react";
 
-// 1. Move your primary layout into an inner content rendering engine
-function PosterContent() {
+export default function PosterManagementDashboard() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const posterRef = useRef<HTMLDivElement>(null);
+  const eventId = searchParams.get("id");
+  const supabase = createClientComponentClient();
 
-  // Read URL parameters safely
-  const title = searchParams?.get("title") || "Grand Islamic Knowledge Session";
-  const speaker = searchParams?.get("speaker") || "Honorable Scholar Node";
-  const venue = searchParams?.get("venue") || "Central Town Hall Complex";
-  const date = searchParams?.get("date") || "June 24, 2026";
-  const district = searchParams?.get("district") || "Kozhikode";
-  const organization = searchParams?.get("organization") || "Central Deen Committee";
+  const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [eventData, setEventData] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
 
-  const [uploadedSpeakerImg, setUploadedSpeakerImg] = useState<string | null>(null);
-  const [accentTheme, setAccentTheme] = useState<"emerald" | "amber">("emerald");
+  // Edit Buffer Fields
+  const [editTitle, setEditTitle] = useState("");
+  const [editSpeaker, setEditSpeaker] = useState("");
+  const [editVenue, setEditVenue] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editImage, setEditImage] = useState("");
 
-  const handleLocalImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setUploadedSpeakerImg(imageUrl);
+  useEffect(() => {
+    const fetchEventContext = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+
+      if (!eventId) {
+        alert("No target event tracking identifier specified.");
+        router.push("/");
+        return;
+      }
+
+      const { data, error } = await supabase.from("events").select("*").eq("id", eventId).single();
+      if (data) {
+        setEventData(data);
+        // Hydrate configuration buffers
+        setEditTitle(data.title);
+        setEditSpeaker(data.speaker);
+        setEditVenue(data.venue);
+        setEditDate(data.date);
+        setEditTime(data.time);
+        setEditImage(data.image_url || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200");
+      }
+      setLoading(false);
+    };
+    fetchEventContext();
+  }, [eventId, supabase, router]);
+
+  const handleUpdateSave = async () => {
+    if (user?.id !== eventData.user_id) {
+      return alert("Security Access Denied: You do not possess structural ownership permissions for this node.");
+    }
+
+    setLoading(true);
+    const { error } = await supabase
+      .from("events")
+      .update({
+        title: editTitle,
+        speaker: editSpeaker,
+        venue: editVenue,
+        date: editDate,
+        time: editTime,
+        image_url: editImage
+      })
+      .eq("id", eventId);
+
+    if (!error) {
+      setEventData({
+        ...eventData,
+        title: editTitle,
+        speaker: editSpeaker,
+        venue: editVenue,
+        date: editDate,
+        time: editTime,
+        image_url: editImage
+      });
+      setIsEditing(false);
+    } else {
+      alert(`Database rejected operations: ${error.message}`);
+    }
+    setLoading(false);
+  };
+
+  const handleDeleteNode = async () => {
+    if (!window.confirm("Are you absolutely sure you want to completely drop this directory index node?")) return;
+    
+    const { error } = await supabase.from("events").delete().eq("id", eventId);
+    if (!error) {
+      router.push("/");
+    } else {
+      alert(`Deletion fault: ${error.message}`);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#020408] flex flex-col items-center justify-center gap-2">
+        <Loader2 className="text-emerald-500 animate-spin" size={20} />
+        <span className="text-xs text-slate-600 font-bold tracking-widest uppercase">Syncing Live Buffers...</span>
+      </div>
+    );
+  }
+
+  // Fallback visual normalization to fix generic fruit issue
+  const currentRenderImage = eventData?.image_url?.includes("fruit") || !eventData?.image_url
+    ? "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200"
+    : eventData.image_url;
+
   return (
-    <div className="min-h-screen bg-[#030509] text-slate-100 py-8 px-4 font-sans antialiased">
-      <div className="max-w-4xl mx-auto">
-        
-        {/* TOP CONFIGURATION CONTROL STRIP */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 bg-[#080d16] border border-slate-900 p-4 rounded-xl shadow-xl">
-          <Link href="/" className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors">
-            <ArrowLeft size={14} /> Back to Directory Feed
-          </Link>
+    <div className="min-h-screen bg-[#020408] text-slate-100 pb-16">
+      <div className="h-1.5 w-full bg-gradient-to-r from-emerald-600 to-teal-500" />
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-900">
-              <button onClick={() => setAccentTheme("emerald")} className={`text-[10px] font-bold px-2.5 py-1 rounded-md transition-all ${accentTheme === "emerald" ? "bg-emerald-600 text-white" : "text-slate-500"}`}>Emerald</button>
-              <button onClick={() => setAccentTheme("amber")} className={`text-[10px] font-bold px-2.5 py-1 rounded-md transition-all ${accentTheme === "amber" ? "bg-amber-600 text-white" : "text-slate-500"}`}>Gold</button>
-            </div>
-
-            <label className="h-8 px-3 bg-slate-950 hover:bg-slate-900 border border-slate-900 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer text-slate-300">
-              <ImageIcon size={13} className="text-emerald-500" />
-              <span>Upload Scholar Pic</span>
-              <input type="file" accept="image/*" onChange={handleLocalImageUpload} className="hidden" />
-            </label>
-          </div>
-        </div>
-
-        {/* CENTRAL PREVIEW DISPLAY PLATFORM LAYOUT WORKSPACE */}
-        <div className="grid md:grid-cols-5 gap-8 items-start">
+      <header className="border-b border-slate-900 bg-[#020408]/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <button onClick={() => router.back()} className="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
+            <ArrowLeft size={14} /> Leave Management Space
+          </button>
           
-          {/* THE MASTER EDITABLE HIGH-FIDELITY ISLAMIC DESIGN CANVAS (3 COLS WIDE) */}
-          <div className="md:col-span-3 flex justify-center">
-            <div 
-              ref={posterRef}
-              className="w-full max-w-[380px] aspect-[1/1.5] bg-[#040912] border-4 rounded-[2.5rem] p-6 relative overflow-hidden flex flex-col justify-between shadow-2xl transition-all"
-              style={{ borderColor: accentTheme === "emerald" ? "#065f46" : "#b45309" }}
-            >
-              
-              {/* ISLAMIC PATTERN GEOMETRIC VECTOR DESIGN OVERLAY CHIPS */}
-              <div className="absolute top-0 inset-x-0 h-32 opacity-10 pointer-events-none bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:12px_12px]" />
-              <div className={`absolute top-[-40px] right-[-40px] w-32 h-32 rounded-full blur-2xl opacity-10 ${accentTheme === "emerald" ? "bg-emerald-500" : "bg-amber-500"}`} />
-
-              {/* POSTER HEADER BRANDING TAG ROW */}
-              <div className="relative z-10 text-center space-y-1 mt-2">
-                <span className={`text-[9px] font-black tracking-widest uppercase px-2.5 py-0.5 rounded border ${
-                  accentTheme === "emerald" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-amber-500/10 border-amber-500/20 text-amber-400"
-                }`}>
-                  {organization} Presents
-                </span>
-                <div className="w-2 h-2 rounded-full mx-auto my-1 bg-amber-500" />
-              </div>
-
-              {/* CENTRAL BLOCK CONTEXT AREA */}
-              <div className="relative z-10 text-center space-y-4 my-auto">
-                <h2 className="text-lg font-black tracking-tight text-white leading-snug px-2 drop-shadow-md">
-                  {title}
-                </h2> 
-
-                {/* SCHOLAR PRESENTATION IMAGE EMBED MOCK INSIDE COMPONENT CANVAS */}
-                <div className="w-24 h-24 mx-auto rounded-full border-2 overflow-hidden bg-slate-950 flex items-center justify-center relative shadow-xl" style={{ borderColor: accentTheme === "emerald" ? "#10b981" : "#f59e0b" }}>
-                  {uploadedSpeakerImg ? (
-                    <img src={uploadedSpeakerImg} alt="Scholar frame" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="text-center p-2 text-slate-600">
-                      <ImageIcon size={20} className="mx-auto mb-0.5" />
-                      <span className="text-[8px] font-bold block leading-none">Drop Photo</span>
-                    </div>
-                  )}
+          {user?.id === eventData?.user_id && (
+            <div className="flex items-center gap-2">
+              {!isEditing ? (
+                <button onClick={() => setIsEditing(true)} className="h-8 px-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-bold text-white flex items-center gap-1.5 hover:border-slate-700 transition-colors">
+                  <Edit2 size={13} className="text-emerald-400" /> Modify Registry
+                </button>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <button onClick={handleUpdateSave} className="h-8 px-3 rounded-lg bg-emerald-600 text-xs font-bold text-white flex items-center gap-1 hover:bg-emerald-500 transition-colors">
+                    <Save size={13} /> Save Data
+                  </button>
+                  <button onClick={() => setIsEditing(false)} className="h-8 px-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-bold text-slate-400 hover:text-white transition-colors">
+                    <X size={13} /> Discard
+                  </button>
                 </div>
-
-                <div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider block ${accentTheme === "emerald" ? "text-emerald-400" : "text-amber-400"}`}>Keynote Speaker</span>
-                  <p className="text-sm font-black text-white">{speaker}</p>
-                </div>
-              </div>
-
-              {/* FOOTER METADATA CARD (GLASSMORPHISM EMBED PANEL ARCHITECTURE) */}
-              <div className="relative z-10 bg-white/[0.02] backdrop-blur-md border border-white/5 rounded-2xl p-3.5 space-y-2 text-center shadow-lg">
-                <div className="grid grid-cols-2 gap-2 text-left border-b border-white/5 pb-2">
-                  <div>
-                    <span className="text-[8px] font-bold uppercase text-slate-500 block">District Node</span>
-                    <span className="text-[10px] font-extrabold text-slate-300 block truncate">{district}</span>
-                  </div>
-                  <div>
-                    <span className="text-[8px] font-bold uppercase text-slate-500 block">Calendar Timeline</span>
-                    <span className="text-[10px] font-extrabold text-slate-300 block truncate">{date}</span>
-                  </div>
-                </div>
-
-                <div className="text-left flex items-center justify-between gap-2">
-                  <div className="truncate">
-                    <span className="text-[8px] font-bold uppercase text-slate-500 block">Conference Venue</span>
-                    <span className="text-[10px] font-black text-slate-200 truncate block">{venue}</span>
-                  </div>
-                  
-                  {/* GENERATED SYSTEM VECTOR QR CODE PLACEHOLDER */}
-                  <div className="w-7 h-7 bg-white p-0.5 rounded shrink-0 flex flex-col justify-between items-center opacity-80 shadow">
-                    <div className="grid grid-cols-3 gap-0.5 w-full h-full">
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => <div key={i} className={`rounded-sm ${i % 3 === 0 ? "bg-black" : "bg-slate-300"}`} />)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          {/* RIGHT SIDEBAR PANEL: CONTEXT MANUAL DOCUMENTATION */}
-          <div className="md:col-span-2 space-y-4">
-            <div className="bg-[#080d16] border border-slate-900 rounded-xl p-5 shadow-xl">
-              <div className="flex items-center gap-1 text-xs font-bold text-emerald-500 uppercase mb-2">
-                <Sparkles size={13} /> Asset Engine Controls
-              </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed mb-4">
-                This utility renders high-fidelity vector canvases on the fly. Organizers can choose between deep emerald or classic gold configuration options, attach custom local speaker portrait fragments, and view integrated location metadata maps automatically.
-              </p>
-
-              <button 
-                onClick={() => alert("✨ Canvas export ready! Screen capture the card framework or press long-hold image on mobile to distribute directly to WhatsApp statuses!")}
-                className="w-full h-11 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md"
-              >
-                <Download size={14} /> Export Active Canvas Asset
+              )}
+              <button onClick={handleDeleteNode} className="h-8 w-8 rounded-lg bg-rose-950/40 border border-rose-900/40 hover:border-rose-500 text-rose-400 flex items-center justify-center transition-all">
+                <Trash2 size={14} />
               </button>
             </div>
+          )}
+        </div>
+      </header>
 
-            <div className="p-4 bg-slate-950 border border-slate-900 rounded-xl flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-              <ShieldCheck size={14} className="text-emerald-500" />
-              <span>DeenEvents Verified Asset Grid</span>
+      <main className="max-w-5xl mx-auto px-4 mt-8 grid md:grid-cols-12 gap-8">
+        
+        {/* POSTER DISPLAY MEDIA COLUMN */}
+        <div className="md:col-span-7 space-y-4">
+          <div className="bg-[#040811] border border-slate-900 rounded-2xl p-4 overflow-hidden shadow-2xl relative group">
+            <div className="aspect-video w-full bg-slate-950 border border-slate-900/60 rounded-xl overflow-hidden relative">
+              <img src={isEditing ? editImage : currentRenderImage} alt="Event Cover Poster" className="w-full h-full object-cover opacity-80" />
             </div>
+            
+            {isEditing && (
+              <div className="mt-4 space-y-1.5">
+                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><ImageIcon size={11} /> Update Direct Banner URL Link</label>
+                <input type="text" value={editImage} onChange={(e) => setEditImage(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/40" />
+              </div>
+            )}
           </div>
-
         </div>
 
-      </div>
-    </div>
-  );
-}
+        {/* DETAILS/EDITABLE FORM CONFIGURATION PANEL */}
+        <div className="md:col-span-5 bg-[#040811] border border-slate-900 rounded-2xl p-6 space-y-5 shadow-xl">
+          {!isEditing ? (
+            // Pure View Metadata Output Mode
+            <div className="space-y-4">
+              <span className="text-[9px] font-black tracking-widest text-emerald-400 uppercase bg-emerald-950/40 border border-emerald-900/30 px-2 py-0.5 rounded inline-block">
+                {eventData?.category}
+              </span>
+              <h2 className="text-base sm:text-lg font-black text-white leading-snug tracking-tight">{eventData?.title}</h2>
+              
+              <div className="space-y-2.5 pt-4 border-t border-slate-900 text-xs text-slate-400">
+                <p className="flex items-center gap-2"><User size={13} className="text-slate-600" /> Speaker: <span className="text-white font-bold">{eventData?.speaker}</span></p>
+                <p className="flex items-center gap-2"><MapPin size={13} className="text-slate-600" /> Center: <span className="text-slate-300">{eventData?.venue} ({eventData?.district})</span></p>
+                <p className="flex items-center gap-2"><Calendar size={13} className="text-slate-600" /> Logged Date: <span className="text-slate-300 font-medium">{eventData?.date}</span></p>
+                <p className="flex items-center gap-2"><Clock size={13} className="text-slate-600" /> Timeline hours: <span className="text-slate-300 font-medium">{eventData?.time}</span></p>
+              </div>
+            </div>
+          ) : (
+            // Live Inline Management Mutation Input Forms
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Modify Direct Title</label>
+                <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500/40" />
+              </div>
 
-// 2. Main default export safely managing Next.js Client Side Bailouts via Suspense
-export default function PosterPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#030509] flex flex-col items-center justify-center text-xs font-bold text-slate-500 uppercase tracking-widest gap-2">
-        <div className="w-5 h-5 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
-        <span>Generating Poster Canvas...</span>
-      </div>
-    }>
-      <PosterContent />
-    </Suspense>
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Modify Speaker Name</label>
+                <input type="text" value={editSpeaker} onChange={(e) => setEditSpeaker(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500/40" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Modify Specific Venue Location</label>
+                <input type="text" value={editVenue} onChange={(e) => setEditVenue(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500/40" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Date Selection</label>
+                  <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none color-scheme-dark" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Time Window</label>
+                  <input type="text" value={editTime} onChange={(e) => setEditTime(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none" />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+      </main>
+    </div>
   );
 }
