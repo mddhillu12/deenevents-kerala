@@ -2,23 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "../utils/supabase/client";
 import Link from "next/link";
-// Local fallback for createClient to avoid module resolution issues.
-// If you have a supabase client initializer elsewhere, replace this
-// with the correct import path.
-const createClient = () => {
-  // Try to use a globally initialized supabase client if available.
-  if ((globalThis as any).supabase) return (globalThis as any).supabase;
-  // Minimal stub returning an object with the methods used in this file.
-  return {
-    auth: {
-      getUser: async () => ({ data: null, error: null }),
-      getSession: async () => ({ data: null, error: null }),
-    },
-    from: () => ({ insert: async () => ({ data: null, error: null }) }),
-  } as any;
-};
-import { Calendar, MapPin, User, FileText, ShieldCheck, ArrowLeft, Loader2, Sparkles, Languages, Map } from "lucide-react";
+import { 
+  Calendar, MapPin, User, FileText, ShieldCheck, 
+  ArrowLeft, Loader2, Sparkles, Languages, Map 
+} from "lucide-react";
 
 export default function SubmitEventPage() {
   const router = useRouter();

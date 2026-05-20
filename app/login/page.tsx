@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../../lib/supabase";
 import { ArrowLeft, Moon, ShieldCheck } from "lucide-react";
 
 export default function LoginPage() {

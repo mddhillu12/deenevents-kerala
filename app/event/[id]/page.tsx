@@ -3,9 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "../../utils/supabase/client";
-import { Edit2, Save, X, Trash2, ArrowLeft, Loader2, Image as ImageIcon, MapPin, Calendar, Clock, User, QrCode, Sparkles } from "lucide-react";
+import { 
+  Edit2, Save, X, Trash2, ArrowLeft, Loader2, 
+  Image as ImageIcon, MapPin, Calendar, Clock, 
+  User, QrCode, Sparkles 
+} from "lucide-react";
 
-export default function PosterManagementDashboard() {
+export default function EventIdDashboard() {
   const router = useRouter();
   const params = useParams();
   const eventId = params?.id;

@@ -1,11 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "../../utils/supabase/client";
-import { Edit2, Save, X, Trash2, ArrowLeft, Loader2, Image as ImageIcon, MapPin, Calendar, Clock, User, QrCode, Sparkles } from "lucide-react";
+import { createClient } from "../utils/supabase/client";
+import { 
+  Edit2, Save, X, Trash2, ArrowLeft, Loader2, 
+  Image as ImageIcon, MapPin, Calendar, Clock, 
+  User, QrCode, Sparkles 
+} from "lucide-react";
 
-export default function PosterManagementDashboard() {
+// 1. Extract the inner component that uses useSearchParams
+function PosterManagementContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const eventId = searchParams?.get("id");
@@ -53,7 +58,7 @@ export default function PosterManagementDashboard() {
   }, [eventId, supabase, router]);
 
   const handleUpdateSave = async () => {
-    if (user?.id !== eventData.user_id) {
+    if (user?.id !== eventData?.user_id) {
       return alert("Security Access Denied: You do not possess structural ownership permissions for this node.");
     }
 
@@ -243,7 +248,7 @@ export default function PosterManagementDashboard() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Date Selection</label>
-                  <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none" style={{ colorScheme: "dark" }} />
+                  <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none color-scheme-dark" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Time Window</label>
@@ -255,5 +260,19 @@ export default function PosterManagementDashboard() {
         </div>
       </main>
     </div>
+  );
+}
+
+// 2. Wrap the final export in Suspense
+export default function PosterManagementDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#020408] flex flex-col items-center justify-center gap-2">
+        <Loader2 className="text-emerald-500 animate-spin" size={20} />
+        <span className="text-xs text-slate-600 font-bold tracking-widest uppercase">Connecting to Database...</span>
+      </div>
+    }>
+      <PosterManagementContent />
+    </Suspense>
   );
 }
