@@ -1,12 +1,10 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
   typescript: {
-    // This bypasses the build-time type errors
+    // This keeps your build passing by ignoring type errors
     ignoreBuildErrors: true,
   },
 };
 
-// Use 'require' instead of 'import' to avoid the "exported member" error
-const { withOpenNextCloudflare } = require("@opennextjs/cloudflare");
-
-module.exports = withOpenNextCloudflare(nextConfig);
+export default nextConfig;
