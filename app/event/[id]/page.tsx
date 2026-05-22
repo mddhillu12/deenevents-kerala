@@ -1,378 +1,213 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { createClient } from "@/utils/supabase/client"; 
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 import { 
-  Edit2, Save, X, Trash2, ArrowLeft, Loader2, 
-  MapPin, Calendar, Clock, User, Users, Share2, 
-  Map as MapIcon, Link as LinkIcon, Building, CalendarPlus
+  MapPin, Calendar, Clock, Share2, User, Building, 
+  ArrowLeft, Loader2, Image as ImageIcon, Map 
 } from "lucide-react";
 
-export default function EventIdDashboard() {
-  const router = useRouter();
+export default function EventDetails() {
   const params = useParams();
-  const eventId = params?.id as string;
+  const router = useRouter();
+  const [event, setEvent] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [timeLeft, setTimeLeft] = useState("");
   const supabase = createClient();
 
-  const [loading, setLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [eventData, setEventData] = useState<any>(null);
-  const [user, setUser] = useState<any>(null);
-
-  // Edit Buffer Fields
-  const [editTitle, setEditTitle] = useState("");
-  const [editVenue, setEditVenue] = useState("");
-  const [editDate, setEditDate] = useState("");
-  const [editTime, setEditTime] = useState("");
-  const [editImage, setEditImage] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-
   useEffect(() => {
-    const fetchEventContext = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
+    async function fetchEvent() {
+      if (!params?.id) return;
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .eq("id", params.id)
+        .single();
 
-      if (!eventId) {
-        router.push("/");
+      if (data) setEvent(data);
+      setLoading(false);
+    }
+    fetchEvent();
+  }, [params]);
+
+  // Countdown Timer Logic
+  useEffect(() => {
+    if (!event?.date) return;
+    
+    const timer = setInterval(() => {
+      const eventDate = new Date(`${event.date}T${event.time || '00:00:00'}`).getTime();
+      const now = new Date().getTime();
+      const distance = eventDate - now;
+
+      if (distance < 0) {
+        setTimeLeft("Event has started/ended");
+        clearInterval(timer);
         return;
       }
 
-      const { data, error } = await supabase.from("events").select("*").eq("id", eventId).single();
-      if (data) {
-        setEventData(data);
-        setEditTitle(data.title || "");
-        setEditVenue(data.venue || "");
-        setEditDate(data.date || "");
-        setEditTime(data.time || "");
-        setEditImage(data.image_url || "");
-        setEditDescription(data.description || "");
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      setTimeLeft(`${days}d ${hours}h left`);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [event]);
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: event.title,
+          text: `Join this event: ${event.title} by ${event.speaker}`,
+          url: window.location.href,
+        });
+      } catch (error) {
+        console.log("Error sharing", error);
       }
-      setLoading(false);
-    };
-    fetchEventContext();
-  }, [eventId, supabase, router]);
-
-  const handleUpdateSave = async () => {
-    if (user?.id !== eventData.user_id) {
-      return alert("Security Access Denied: You do not own this event.");
-    }
-
-    setLoading(true);
-    const { error } = await supabase
-      .from("events")
-      .update({
-        title: editTitle,
-        venue: editVenue,
-        date: editDate,
-        time: editTime,
-        image_url: editImage,
-        description: editDescription
-      })
-      .eq("id", eventId);
-
-    if (!error) {
-      setEventData({
-        ...eventData,
-        title: editTitle,
-        venue: editVenue,
-        date: editDate,
-        time: editTime,
-        image_url: editImage,
-        description: editDescription
-      });
-      setIsEditing(false);
     } else {
-      alert(`Update failed: ${error.message}`);
-    }
-    setLoading(false);
-  };
-
-  const handleDeleteNode = async () => {
-    if (!window.confirm("Are you absolutely sure you want to permanently delete this event?")) return;
-    
-    const { error } = await supabase.from("events").delete().eq("id", eventId);
-    if (!error) {
-      router.push("/");
-    } else {
-      alert(`Deletion fault: ${error.message}`);
+      navigator.clipboard.writeText(window.location.href);
+      alert("Link copied to clipboard!");
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#020408] flex flex-col items-center justify-center gap-3">
-        <Loader2 className="text-emerald-500 animate-spin" size={24} />
-        <span className="text-xs font-bold tracking-widest uppercase text-slate-500">Loading Event Data...</span>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />
       </div>
     );
   }
 
-  if (!eventData) {
+  if (!event) {
     return (
-      <div className="min-h-screen bg-[#020408] flex flex-col items-center justify-center gap-3">
-        <span className="text-sm font-bold tracking-widest uppercase text-slate-500">Event Not Found</span>
-        <Link href="/" className="text-emerald-400 text-xs hover:underline">Return Home</Link>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <h1 className="text-2xl font-bold text-gray-800">Event not found</h1>
+        <button onClick={() => router.push('/')} className="mt-4 text-emerald-600 hover:underline">
+          Go back home
+        </button>
       </div>
     );
   }
-
-  // Handle old string vs new array formats seamlessly
-  const displaySpeakers = Array.isArray(eventData.speakers) && eventData.speakers.length > 0 
-    ? eventData.speakers 
-    : [eventData.speaker].filter(Boolean);
-
-  const displayOrgs = Array.isArray(eventData.organizations) && eventData.organizations.length > 0 
-    ? eventData.organizations 
-    : [];
-
-  const currentRenderImage = eventData.image_url?.includes("fruit") || !eventData.image_url
-    ? "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200"
-    : eventData.image_url;
-
-  // External Links Generation
-  const mapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(`${eventData.venue}, ${eventData.district}, Kerala`)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
-  const shareText = encodeURIComponent(`Don't miss "${eventData.title}" on ${eventData.date} at ${eventData.venue}!\n\nDetails here: `);
-  const whatsappUrl = typeof window !== "undefined" ? `https://wa.me/?text=${shareText}${window.location.href}` : "#";
-  const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventData.title)}&location=${encodeURIComponent(`${eventData.venue}, ${eventData.district}, Kerala`)}&details=${encodeURIComponent(eventData.description || "Islamic Event in Kerala")}`;
 
   return (
-    <div className="min-h-screen bg-[#020408] text-slate-100 pb-20">
-      <div className="h-1.5 w-full bg-gradient-to-r from-emerald-600 to-teal-500" />
-
-      {/* STICKY HEADER */}
-      <header className="border-b border-slate-900 bg-[#020408]/80 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <button onClick={() => router.back()} className="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
-            <ArrowLeft size={14} /> Back
-          </button>
-          
-          {user?.id === eventData.user_id && (
-            <div className="flex items-center gap-2">
-              {!isEditing ? (
-                <button onClick={() => setIsEditing(true)} className="h-8 px-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-bold text-white flex items-center gap-1.5 hover:border-slate-700 transition-colors">
-                  <Edit2 size={13} className="text-emerald-400" /> Manage Event
-                </button>
-              ) : (
-                <div className="flex items-center gap-1.5">
-                  <button onClick={handleUpdateSave} className="h-8 px-3 rounded-lg bg-emerald-600 text-xs font-bold text-white flex items-center gap-1 hover:bg-emerald-500 transition-colors">
-                    <Save size={13} /> Save
-                  </button>
-                  <button onClick={() => setIsEditing(false)} className="h-8 px-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-bold text-slate-400 hover:text-white transition-colors">
-                    <X size={13} /> Cancel
-                  </button>
-                </div>
-              )}
-              <button onClick={handleDeleteNode} className="h-8 w-8 rounded-lg bg-rose-950/40 border border-rose-900/40 hover:border-rose-500 text-rose-400 flex items-center justify-center transition-all">
-                <Trash2 size={14} />
-              </button>
-            </div>
+    <main className="min-h-screen bg-gray-50 pb-20">
+      {/* Islamic Styled Header */}
+      <div className="bg-emerald-900 text-white pt-6 pb-24 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')]"></div>
+        <div className="max-w-2xl mx-auto relative z-10 flex justify-between items-center">
+          <Link href="/" className="flex items-center gap-2 text-emerald-100 hover:text-white transition-colors">
+            <ArrowLeft className="w-5 h-5" /> Back
+          </Link>
+          {event.category && (
+            <span className="bg-emerald-800 border border-emerald-700 px-3 py-1 rounded-full text-xs font-medium">
+              {event.category}
+            </span>
           )}
         </div>
-      </header>
+      </div>
 
-      {/* EDIT MODE VIEW */}
-      {isEditing ? (
-        <main className="max-w-3xl mx-auto px-4 mt-8 space-y-6">
-          <div className="bg-[#040811] border border-slate-900 rounded-2xl p-6 shadow-xl space-y-4">
-            <h2 className="text-lg font-black text-white uppercase tracking-tight border-b border-slate-900 pb-4">Edit Event Details</h2>
-            
-            <div className="space-y-1">
-              <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Event Title</label>
-              <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500/40" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Venue Location</label>
-              <input type="text" value={editVenue} onChange={(e) => setEditVenue(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500/40" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Date</label>
-                <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none [color-scheme:dark]" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Time Window</label>
-                <input type="text" value={editTime} onChange={(e) => setEditTime(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Banner Image URL</label>
-              <input type="text" value={editImage} onChange={(e) => setEditImage(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500/40" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Description</label>
-              <textarea rows={5} value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500/40 resize-none" />
-            </div>
-          </div>
-        </main>
-      ) : (
-
-      /* PUBLIC EVENT VIEW */
-      <main className="max-w-6xl mx-auto px-4 mt-8">
-        {/* BIG HERO BANNER */}
-        <div className="w-full h-64 md:h-96 rounded-3xl overflow-hidden relative shadow-2xl border border-slate-900 mb-8 group">
-          <img src={currentRenderImage} alt={eventData.title} className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#020408] via-[#020408]/60 to-transparent" />
+      <div className="max-w-2xl mx-auto px-4 -mt-16 relative z-20">
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
           
-          <div className="absolute bottom-6 left-6 right-6 md:bottom-10 md:left-10 z-10">
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-950/60 border border-emerald-900/50 px-3 py-1 rounded-full backdrop-blur-md">
-                {eventData.category}
-              </span>
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-300 bg-slate-900/80 border border-slate-800 px-3 py-1 rounded-full backdrop-blur-md">
-                {eventData.district}
-              </span>
-              {!eventData.approved && (
-                <span className="text-[10px] font-black uppercase tracking-widest text-rose-400 bg-rose-950/60 border border-rose-900/50 px-3 py-1 rounded-full backdrop-blur-md animate-pulse">
-                  Pending Approval
-                </span>
-              )}
+          {/* Poster Section (Priority 2) */}
+          {event.poster_url ? (
+            <div className="w-full h-72 bg-gray-100 relative">
+              <img 
+                src={event.poster_url} 
+                alt={event.title}
+                className="w-full h-full object-cover"
+              />
             </div>
-            <h1 className="text-3xl md:text-5xl font-black text-white leading-tight tracking-tighter max-w-4xl drop-shadow-lg">
-              {eventData.title}
+          ) : (
+            <div className="w-full h-32 bg-emerald-50 flex flex-col items-center justify-center border-b border-gray-100">
+              <ImageIcon className="w-8 h-8 text-emerald-200 mb-2" />
+              <span className="text-emerald-600/50 text-sm font-medium">No poster available</span>
+            </div>
+          )}
+
+          <div className="p-6 sm:p-8">
+            <h1 className="text-3xl font-bold text-gray-900 leading-tight mb-4">
+              {event.title}
             </h1>
-          </div>
-        </div>
 
-        <div className="grid lg:grid-cols-12 gap-8 items-start">
-          
-          {/* LEFT COLUMN: INFO & MAP */}
-          <div className="lg:col-span-8 space-y-8">
-            
-            {/* Speakers & Organizations Box */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              {displaySpeakers.length > 0 && (
-                <div className="bg-[#040811] border border-slate-900 p-5 rounded-2xl shadow-lg">
-                  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mb-3">
-                    <User size={12} /> Featured Speakers
-                  </h3>
-                  <div className="space-y-2">
-                    {displaySpeakers.map((spk: string, i: number) => (
-                      <div key={i} className="flex items-center gap-3 text-sm font-bold text-white bg-slate-950 p-2.5 rounded-xl border border-slate-800/50">
-                        <div className="w-8 h-8 rounded-full bg-emerald-950 border border-emerald-900 flex items-center justify-center text-[10px]">🎙</div>
-                        {spk}
-                      </div>
-                    ))}
-                  </div>
+            {/* Countdown Badge */}
+            <div className="inline-block bg-orange-100 text-orange-800 px-4 py-2 rounded-xl font-bold text-sm mb-6">
+              ⏱ {timeLeft}
+            </div>
+
+            <div className="space-y-5 mb-8">
+              <div className="flex items-start gap-3">
+                <User className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Speaker</p>
+                  <p className="text-gray-900 font-semibold text-lg">{event.speaker}</p>
                 </div>
-              )}
+              </div>
 
-              {displayOrgs.length > 0 && (
-                <div className="bg-[#040811] border border-slate-900 p-5 rounded-2xl shadow-lg">
-                  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mb-3">
-                    <Building size={12} /> Organized By
-                  </h3>
-                  <div className="space-y-2">
-                    {displayOrgs.map((org: string, i: number) => (
-                      <div key={i} className="flex items-center gap-3 text-sm font-bold text-white bg-slate-950 p-2.5 rounded-xl border border-slate-800/50">
-                        <div className="w-8 h-8 rounded-full bg-teal-950 border border-teal-900 flex items-center justify-center text-[10px]">🏢</div>
-                        {org}
-                      </div>
-                    ))}
+              <div className="flex items-start gap-3">
+                <Calendar className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Date & Time</p>
+                  <p className="text-gray-900 font-semibold">
+                    {new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                  <p className="text-gray-700">{event.time}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <MapPin className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Location</p>
+                  <p className="text-gray-900 font-semibold">{event.location}</p>
+                  <p className="text-gray-700">{event.district}</p>
+                </div>
+              </div>
+
+              {event.organizer && (
+                <div className="flex items-start gap-3">
+                  <Building className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Organized By</p>
+                    <p className="text-gray-900 font-semibold">{event.organizer}</p>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Description Details */}
-            <div className="bg-[#040811] border border-slate-900 p-6 rounded-2xl shadow-lg space-y-4">
-              <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                <MapIcon size={14} className="text-emerald-400" /> About The Gathering
-              </h3>
-              <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
-                {eventData.description || "No specific details provided by the organizer. Please verify the timeline and location."}
+            <div className="border-t border-gray-100 pt-6 mb-8">
+              <h3 className="text-lg font-bold text-gray-900 mb-3">About this Event</h3>
+              <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
+                {event.description || "No description provided for this event."}
               </p>
-              
-              {/* Event Attributes Row */}
-              <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-900/60">
-                {eventData.sisters_only && <span className="text-[10px] font-bold bg-rose-950/30 text-rose-400 border border-rose-900 px-3 py-1 rounded-lg">Sisters Only Entry</span>}
-                {eventData.family_friendly && <span className="text-[10px] font-bold bg-teal-950/30 text-teal-400 border border-teal-900 px-3 py-1 rounded-lg">Family Friendly</span>}
-              </div>
             </div>
 
-            {/* Live Map Embed */}
-            <div className="bg-[#040811] border border-slate-900 p-4 rounded-2xl shadow-lg overflow-hidden h-72 relative">
-              <h3 className="absolute top-4 left-4 z-10 text-[10px] font-black text-slate-900 bg-white/90 px-3 py-1 rounded shadow-md uppercase tracking-wider flex items-center gap-1">
-                <MapPin size={12} /> Venue Radar
-              </h3>
-              <iframe 
-                width="100%" 
-                height="100%" 
-                style={{ border: 0, borderRadius: '0.75rem' }} 
-                loading="lazy" 
-                allowFullScreen 
-                referrerPolicy="no-referrer-when-downgrade" 
-                src={mapEmbedUrl}
-              ></iframe>
-            </div>
-
-          </div>
-
-          {/* RIGHT COLUMN: STICKY ACTION CARD */}
-          <div className="lg:col-span-4 space-y-4 lg:sticky lg:top-24">
-            
-            {/* Primary Action Card */}
-            <div className="bg-gradient-to-b from-[#060c18] to-[#040811] border border-slate-800 p-6 rounded-3xl shadow-2xl space-y-6">
+            {/* Action Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <a 
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location + ' ' + event.district)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 bg-emerald-600 text-white py-3.5 px-4 rounded-xl font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
+              >
+                <Map className="w-5 h-5" />
+                Open in Maps
+              </a>
               
-              <div className="space-y-4">
-                <div className="flex gap-3 items-start">
-                  <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0">
-                    <Calendar size={16} className="text-emerald-400" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-500 block mb-0.5 tracking-widest">Date</span>
-                    <span className="text-sm font-black text-white">{eventData.date}</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 items-start">
-                  <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0">
-                    <Clock size={16} className="text-emerald-400" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-500 block mb-0.5 tracking-widest">Time</span>
-                    <span className="text-sm font-black text-white">{eventData.time}</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 items-start">
-                  <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0">
-                    <MapPin size={16} className="text-emerald-400" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-500 block mb-0.5 tracking-widest">Location</span>
-                    <span className="text-sm font-black text-white block">{eventData.venue}</span>
-                    <span className="text-xs text-slate-400">{eventData.district}, Kerala</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Call to Action Buttons */}
-              <div className="space-y-3 pt-4 border-t border-slate-800/80">
-                {eventData.requires_registration && eventData.registration_link && (
-                  <a href={eventData.registration_link} target="_blank" rel="noreferrer" className="w-full h-12 bg-emerald-600 hover:bg-emerald-500 transition-colors text-white font-black text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/50">
-                    <LinkIcon size={14} /> Register / RSVP
-                  </a>
-                )}
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <a href={gCalUrl} target="_blank" rel="noreferrer" className="h-11 bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-colors text-white font-bold text-[10px] uppercase tracking-wider rounded-xl flex items-center justify-center gap-2">
-                    <CalendarPlus size={14} className="text-slate-400" /> Calendar
-                  </a>
-                  
-                  <a href={whatsappUrl} target="_blank" rel="noreferrer" className="h-11 bg-[#128C7E]/10 hover:bg-[#128C7E]/20 border border-[#128C7E]/30 transition-colors text-[#25D366] font-bold text-[10px] uppercase tracking-wider rounded-xl flex items-center justify-center gap-2">
-                    <Share2 size={14} /> WhatsApp
-                  </a>
-                </div>
-              </div>
-
+              <button 
+                onClick={handleShare}
+                className="flex items-center justify-center gap-2 bg-white text-gray-700 border-2 border-gray-200 py-3.5 px-4 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+              >
+                <Share2 className="w-5 h-5" />
+                Share Event
+              </button>
             </div>
 
           </div>
         </div>
-      </main>
-      )}
-    </div>
+      </div>
+    </main>
   );
 }

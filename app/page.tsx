@@ -1,100 +1,145 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 import { 
-  Sparkles, MapPin, Calendar, Clock, PlusCircle, 
-  Bookmark, User, Search, Flame 
+  MapPin, Calendar, Clock, ArrowRight, Search, 
+  BookOpen, Users, Star, Loader2 
 } from "lucide-react";
 
 export default function Home() {
-  const supabase = createClient();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState("All");
+  const supabase = createClient();
+
+  const categories = ["All", "Lecture", "Dars", "Khutbah", "Sisters Program", "Youth"];
 
   useEffect(() => {
-    const fetchEvents = async () => {
-      setLoading(true);
-      const { data } = await supabase
+    async function fetchEvents() {
+      // Fetching only upcoming approved events
+      const { data, error } = await supabase
         .from("events")
         .select("*")
-        .eq("approved", true) // ONLY SHOW APPROVED EVENTS
-        .order("date", { ascending: true });
+        .order("date", { ascending: true })
+        .limit(10);
 
-      if (data) setEvents(data);
+      if (!error && data) {
+        setEvents(data);
+      }
       setLoading(false);
-    };
+    }
     fetchEvents();
-  }, [supabase]);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#020408] text-slate-100 pb-20">
-      {/* HEADER SECTION */}
-      <header className="px-6 py-8">
-        <div className="max-w-6xl mx-auto flex justify-between items-end">
-          <div>
-            <h1 className="text-3xl font-black text-white tracking-tight">Gatherings</h1>
-            <p className="text-slate-500 text-xs mt-1">Kerala's verified event network.</p>
+    <main className="min-h-screen bg-gray-50 pb-20">
+      {/* Islamic Styled Hero Banner */}
+      <section className="bg-emerald-900 text-white pt-20 pb-16 px-4 rounded-b-[40px] shadow-lg relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')]"></div>
+        <div className="max-w-md mx-auto relative z-10">
+          <h1 className="text-4xl font-bold mb-3 tracking-tight">Discover Islamic Events in Kerala</h1>
+          <p className="text-emerald-100 mb-6 text-lg">Find authentic lectures, dars, and community gatherings near you.</p>
+          
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-4 top-3.5 text-gray-400 w-5 h-5" />
+            <input 
+              type="text" 
+              placeholder="Search scholars, topics, or locations..." 
+              className="w-full pl-12 pr-4 py-3 rounded-xl text-gray-900 shadow-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+            />
           </div>
-          <button className="bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-slate-400 hover:text-white">
-            <Search size={18} />
-          </button>
         </div>
-      </header>
+      </section>
 
-      {/* FEED GRID */}
-      <main className="max-w-6xl mx-auto px-6">
+      <div className="max-w-md mx-auto px-4 mt-8">
+        {/* Categories (Priority 7) */}
+        <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4">
+          {categories.map((cat) => (
+            <button 
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`whitespace-nowrap px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+                activeCategory === cat 
+                  ? "bg-emerald-700 text-white shadow-md" 
+                  : "bg-white text-gray-600 border border-gray-200"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex justify-between items-center mb-6 mt-4">
+          <h2 className="text-xl font-bold text-gray-900">Upcoming Events</h2>
+          <Link href="/events" className="text-emerald-600 text-sm font-medium hover:underline">
+            View All
+          </Link>
+        </div>
+
+        {/* Loading State (Priority 5) */}
         {loading ? (
-          /* SKELETON LOADERS */
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-72 bg-slate-900/50 rounded-3xl animate-pulse border border-slate-800" />
+          <div className="space-y-4">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="bg-white rounded-2xl p-4 animate-pulse shadow-sm border border-gray-100">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
+                <div className="flex gap-2">
+                  <div className="h-8 bg-gray-100 rounded-lg w-20"></div>
+                  <div className="h-8 bg-gray-100 rounded-lg w-24"></div>
+                </div>
+              </div>
             ))}
           </div>
+        ) : events.length === 0 ? (
+          <div className="text-center py-10 bg-white rounded-2xl border border-gray-100 shadow-sm">
+            <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">No upcoming events found.</p>
+          </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-4">
             {events.map((event) => (
-              <Link key={event.id} href={`/event/${event.id}`} className="group bg-[#040811] border border-slate-900 rounded-3xl overflow-hidden hover:border-emerald-900/50 transition-all shadow-lg">
-                <div className="h-40 bg-slate-900 relative">
-                  <img src={event.image_url || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800"} className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform" />
-                  <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-2 py-1 rounded text-[10px] font-bold text-white uppercase">{event.district}</div>
-                </div>
-                <div className="p-5">
-                  <h3 className="font-black text-white mb-3 group-hover:text-emerald-400 transition-colors">{event.title}</h3>
-                  <div className="space-y-2 text-[11px] text-slate-500">
-                    <div className="flex items-center gap-2"><Calendar size={12} /> {event.date}</div>
-                    <div className="flex items-center gap-2"><MapPin size={12} /> {event.venue}</div>
+              <Link href={`/event/${event.id}`} key={event.id} className="block group">
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden">
+                  
+                  {/* Event Status Badge (Priority 8) */}
+                  <div className="absolute top-4 right-4 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full">
+                    Upcoming
+                  </div>
+
+                  <h3 className="text-lg font-bold text-gray-900 mb-1 pr-20 group-hover:text-emerald-700 transition-colors">
+                    {event.title}
+                  </h3>
+                  <p className="text-emerald-600 font-medium text-sm mb-4">{event.speaker}</p>
+                  
+                  <div className="grid grid-cols-2 gap-3 text-sm text-gray-600 mb-4">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-gray-400" />
+                      <span>{new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      <span>{event.time}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 col-span-2">
+                      <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+                      <span className="truncate">{event.location}, {event.district}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end border-t border-gray-50 pt-3 mt-2">
+                    <span className="flex items-center text-sm text-emerald-600 font-medium group-hover:translate-x-1 transition-transform">
+                      View Details <ArrowRight className="w-4 h-4 ml-1" />
+                    </span>
                   </div>
                 </div>
               </Link>
             ))}
           </div>
         )}
-      </main>
-
-      {/* MOBILE BOTTOM NAV */}
-      <div className="fixed bottom-0 w-full bg-[#020408]/90 backdrop-blur-lg border-t border-slate-900 p-3 flex justify-around items-center z-50">
-        <Link href="/" className="flex flex-col items-center gap-1 text-emerald-500">
-          <Flame size={18} />
-          <span className="text-[8px] font-black uppercase">Home</span>
-        </Link>
-        <Link href="/poster" className="flex flex-col items-center gap-1 text-slate-500 hover:text-white">
-          <Sparkles size={18} />
-          <span className="text-[8px] font-black uppercase">AI Canvas</span>
-        </Link>
-        <Link href="/submit" className="bg-emerald-600 text-white p-3 rounded-full -mt-8 border-4 border-[#020408] shadow-lg">
-          <PlusCircle size={24} />
-        </Link>
-        <button className="flex flex-col items-center gap-1 text-slate-500 hover:text-white">
-          <Bookmark size={18} />
-          <span className="text-[8px] font-black uppercase">Saved</span>
-        </button>
-        <button className="flex flex-col items-center gap-1 text-slate-500 hover:text-white">
-          <User size={18} />
-          <span className="text-[8px] font-black uppercase">Profile</span>
-        </button>
       </div>
-    </div>
+    </main>
   );
 }
