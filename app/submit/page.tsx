@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@utils/supabase/client"; 
+import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 import { 
   Calendar, MapPin, User, FileText, ShieldCheck, 
-  ArrowLeft, Loader2, Sparkles, Languages, Map, Plus, X, Link as LinkIcon
+  ArrowLeft, Loader2, Sparkles, Languages, Map, Plus, X, Clock, Link as LinkIcon
 } from "lucide-react";
 
 export default function SubmitEventPage() {
