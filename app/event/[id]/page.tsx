@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 import { 
-  MapPin, Calendar, Clock, Share2, Heart, Map, ArrowLeft, 
+  MapPin, Calendar, Clock, Share2, Heart, ArrowLeft, 
   User, Building 
 } from "lucide-react";
 
@@ -22,14 +22,14 @@ export default function EventDetails() {
   const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
-    fetchEventAndUser();
+    fetchEvent();
   }, [params.id]);
 
-  const fetchEventAndUser = async () => {
+  const fetchEvent = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     setUser(user);
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("events")
       .select("*")
       .eq("id", params.id)
@@ -37,7 +37,6 @@ export default function EventDetails() {
 
     if (data) {
       setEvent(data);
-      
       if (user) {
         const { data: saved } = await supabase
           .from("saved_events")
@@ -53,28 +52,25 @@ export default function EventDetails() {
 
   // Countdown
   useEffect(() => {
-    if (!event?.date) return;
-    const interval = setInterval(() => {
-      const eventDate = new Date(`${event.date}T${event.time || "00:00"}`).getTime();
+    if (!event) return;
+    const timer = setInterval(() => {
+      const eventTime = new Date(`${event.date}T${event.time || "00:00"}`).getTime();
       const now = Date.now();
-      const diff = eventDate - now;
+      const diff = eventTime - now;
 
       if (diff < 0) {
         setTimeLeft("Event has started");
         return;
       }
-
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      setTimeLeft(`${days}d ${hours}h remaining`);
+      const days = Math.floor(diff / (86400000));
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      setTimeLeft(`${days}d ${hours}h left`);
     }, 60000);
-
-    return () => clearInterval(interval);
+    return () => clearInterval(timer);
   }, [event]);
 
   const toggleSave = async () => {
     if (!user) return router.push("/login");
-
     if (isSaved) {
       await supabase.from("saved_events").delete().eq("event_id", event.id).eq("user_id", user.id);
     } else {
@@ -83,56 +79,47 @@ export default function EventDetails() {
     setIsSaved(!isSaved);
   };
 
-  const handleShare = () => {
-    const text = `${event.title}\nby ${event.speaker}\n${event.date} • ${event.location}`;
-    if (navigator.share) {
-      navigator.share({ title: event.title, text, url: window.location.href });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert("Link copied!");
-    }
+  const shareToWhatsApp = () => {
+    const text = `${event.title}\n\nBy: ${event.speaker}\nDate: ${event.date}\nVenue: ${event.location}, ${event.district}\n\nJoin us!`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full"></div></div>;
-
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!event) return <div className="min-h-screen pt-20 text-center">Event not found</div>;
 
   return (
     <main className="min-h-screen bg-gray-50 pb-24">
-      <div className="bg-emerald-900 text-white pt-6 pb-16 px-4 relative">
-        <Link href="/" className="flex items-center gap-2 text-emerald-200 mb-6">
-          <ArrowLeft /> Back to Events
+      <div className="bg-emerald-900 text-white pt-8 pb-20 px-4">
+        <Link href="/" className="flex items-center gap-2 mb-6 text-emerald-200">
+          <ArrowLeft size={20} /> Back
         </Link>
         <span className="inline-block bg-emerald-700 px-4 py-1 rounded-full text-sm">{event.category}</span>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 -mt-10 relative">
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+      <div className="max-w-2xl mx-auto px-4 -mt-12 relative">
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
           {event.poster_url && (
             <img src={event.poster_url} alt={event.title} className="w-full h-80 object-cover" />
           )}
 
-          <div className="p-7">
-            <h1 className="text-3xl font-bold leading-tight mb-4">{event.title}</h1>
+          <div className="p-8">
+            <h1 className="text-3xl font-bold mb-4 leading-tight">{event.title}</h1>
 
-            <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-4 py-2 rounded-2xl text-sm font-medium mb-6">
+            <div className="inline-block bg-orange-100 text-orange-700 px-5 py-2 rounded-2xl text-sm font-medium mb-6">
               ⏳ {timeLeft}
             </div>
 
             <div className="space-y-6 mb-10">
               <div className="flex gap-4">
                 <User className="w-6 h-6 text-emerald-600 mt-1" />
-                <div>
-                  <p className="text-gray-500 text-sm">Speaker</p>
-                  <p className="font-semibold text-lg">{event.speaker}</p>
-                </div>
+                <div><p className="text-gray-500">Speaker</p><p className="font-semibold">{event.speaker}</p></div>
               </div>
 
               <div className="flex gap-4">
                 <Calendar className="w-6 h-6 text-emerald-600 mt-1" />
                 <div>
-                  <p className="text-gray-500 text-sm">Date & Time</p>
-                  <p className="font-semibold">{new Date(event.date).toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                  <p className="text-gray-500">Date & Time</p>
+                  <p className="font-semibold">{new Date(event.date).toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
                   <p>{event.time}</p>
                 </div>
               </div>
@@ -140,7 +127,7 @@ export default function EventDetails() {
               <div className="flex gap-4">
                 <MapPin className="w-6 h-6 text-emerald-600 mt-1" />
                 <div>
-                  <p className="text-gray-500 text-sm">Venue</p>
+                  <p className="text-gray-500">Venue</p>
                   <p className="font-semibold">{event.location}</p>
                   <p className="text-gray-600">{event.district}</p>
                 </div>
@@ -154,27 +141,17 @@ export default function EventDetails() {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={toggleSave}
-                className={`flex-1 py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all ${isSaved ? "bg-red-100 text-red-600" : "bg-gray-100 hover:bg-gray-200"}`}
-              >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button onClick={toggleSave} className={`py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 ${isSaved ? 'bg-red-100 text-red-600' : 'bg-gray-100 hover:bg-gray-200'}`}>
                 <Heart className={isSaved ? "fill-current" : ""} /> {isSaved ? "Saved" : "Save Event"}
               </button>
 
-              <button
-                onClick={handleShare}
-                className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-emerald-700"
-              >
+              <button onClick={shareToWhatsApp} className="bg-green-600 text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-green-700">
                 <Share2 /> Share on WhatsApp
               </button>
             </div>
 
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location + ", " + event.district + ", Kerala")}`}
-              target="_blank"
-              className="mt-3 block w-full text-center py-4 border border-emerald-600 text-emerald-600 rounded-2xl font-semibold hover:bg-emerald-50"
-            >
+            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location + ", " + event.district)}`} target="_blank" className="mt-4 block w-full text-center py-4 border border-emerald-600 text-emerald-600 rounded-2xl font-semibold">
               Open in Google Maps
             </a>
           </div>

@@ -148,3 +148,25 @@ export default function HomeClient({
     </>
   );
 }
+const handleNearMe = () => {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        // For now, we'll simulate by selecting a popular district
+        // You can improve this later with proper distance calculation
+        alert("📍 Location feature coming soon! Showing events from Malappuram & Kozhikode for now.");
+        // You can set district filter here
+      },
+      () => alert("Please enable location access")
+    );
+  }
+};
+// In HomeClient.tsx - Add this button near the filters
+<div className="flex gap-3">
+  <button 
+    onClick={handleNearMe}
+    className="px-5 py-3 bg-emerald-600 text-white rounded-2xl font-medium flex items-center gap-2 hover:bg-emerald-700"
+  >
+    📍 Near Me
+  </button>
+</div>
