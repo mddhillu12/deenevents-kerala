@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Bookmark, PlusCircle, User, LogIn, LogOut, Map, Users } from "lucide-react";
+import { Home, Bookmark, PlusCircle, User, LogIn, LogOut, Map, Users, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 
@@ -49,6 +49,8 @@ export default function ResponsiveNav() {
     { label: "Map", href: "/events/map", icon: Map },
     { label: "Saved", href: "/saved", icon: Bookmark },
     { label: "Submit", href: "/submit", icon: PlusCircle },
+    { label: "Poster", href: "/poster", icon: Sparkles },
+    { label: "Poster", href: "/poster", icon: Sparkles },
   ];
 
   return (

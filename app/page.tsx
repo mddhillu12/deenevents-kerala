@@ -28,6 +28,8 @@ export default async function Home({
     .select("*")
     .order("date", { ascending: true })
     .limit(20);
+    // Remove strict status filter for now
+// if (status) ...
 
   if (searchTerm) {
     query = query.or(`title.ilike.%${searchTerm}%,speaker.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%`);
