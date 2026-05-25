@@ -16,6 +16,8 @@
     "@opennextjs/cloudflare": "^1.19.1",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
+    "axios": "^1.16.1",
+    "hijri-js": "^1.0.25",
     "html-to-image": "^1.11.13",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.8.0",

@@ -37,7 +37,9 @@ export default function SavedEvents() {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
       
-      if (user) await fetchSavedEvents(user.id);
+      if (user) {
+        await fetchSavedEvents(user.id);
+      }
       setLoading(false);
     };
 
@@ -45,40 +47,64 @@ export default function SavedEvents() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user || null);
-      if (session?.user) fetchSavedEvents(session.user.id);
+      if (session?.user) {
+        fetchSavedEvents(session.user.id);
+      } else {
+        setSavedEvents([]);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const fetchSavedEvents = async (userId: string) => {
-  const { data, error } = await supabase
-    .from("saved_events")
-    .select(`
-      id,
-      event:events!inner (
-        id, title, speaker, date, time, location, 
-        district, category, poster_url
-      )
-    `)
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    setLoading(true);
 
-  if (error) {
-    console.error("Error fetching saved events:", error);
-    setSavedEvents([]);
-  } else {
-    // Clean and safe mapping
-    const validData = (data || [])
-      .filter(item => item?.event)
-      .map((item: any) => ({
-        id: item.id,
-        event: item.event
-      }));
+    const { data, error } = await supabase
+      .from("saved_events")
+      .select(`
+        id,
+        event:events (
+          id, 
+          title, 
+          speaker, 
+          date, 
+          time, 
+          location, 
+          district, 
+          category, 
+          poster_url
+        )
+      `)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
 
-    setSavedEvents(validData as SavedEvent[]);
-  }
-};
+    if (error) {
+      console.error("Error fetching saved events:", error);
+      setSavedEvents([]);
+    } else {
+      // Safe filtering and mapping
+      const validEvents: SavedEvent[] = (data || [])
+        .filter((item: any) => item?.event)
+        .map((item: any) => ({
+          id: item.id,
+          event: {
+            id: item.event.id,
+            title: item.event.title,
+            speaker: item.event.speaker,
+            date: item.event.date,
+            time: item.event.time,
+            location: item.event.location,
+            district: item.event.district,
+            category: item.event.category,
+            poster_url: item.event.poster_url,
+          }
+        }));
+
+      setSavedEvents(validEvents);
+    }
+    setLoading(false);
+  };
 
   const unsaveEvent = async (savedId: string) => {
     const { error } = await supabase
@@ -119,33 +145,46 @@ export default function SavedEvents() {
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1,2,3].map(i => <div key={i} className="h-80 bg-white rounded-3xl animate-pulse" />)}
+            {[1,2,3].map(i => (
+              <div key={i} className="h-80 bg-white rounded-3xl animate-pulse" />
+            ))}
           </div>
         ) : savedEvents.length === 0 ? (
-          <div className="bg-white rounded-3xl p-16 text-center">
+          <div className="bg-white rounded-3xl p-16 text-center border border-gray-100">
             <Heart className="w-20 h-20 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-xl font-semibold">No saved events yet</h3>
-            <Link href="/" className="text-emerald-600 mt-4 inline-block">Browse Events →</Link>
+            <h3 className="text-xl font-semibold mb-2">No saved events yet</h3>
+            <Link href="/" className="text-emerald-600 hover:underline font-medium">Browse Events →</Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {savedEvents.map((saved) => {
               const e = saved.event;
               return (
-                <div key={saved.id} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100">
+                <div key={saved.id} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 group">
                   {e.poster_url && (
                     <div className="relative h-52">
-                      <img src={e.poster_url} alt={e.title} className="w-full h-full object-cover" />
+                      <img 
+                        src={e.poster_url} 
+                        alt={e.title} 
+                        className="w-full h-full object-cover" 
+                      />
+                      <button 
+                        onClick={() => unsaveEvent(saved.id)}
+                        className="absolute top-3 right-3 bg-white/90 hover:bg-red-50 p-2 rounded-full text-red-500 transition-colors"
+                      >
+                        <Trash2 size={20} />
+                      </button>
                     </div>
                   )}
+
                   <div className="p-6">
                     <h3 className="font-bold text-lg mb-2 line-clamp-2">{e.title}</h3>
-                    <p className="text-emerald-600 mb-4">{e.speaker}</p>
+                    <p className="text-emerald-600 font-medium mb-4">{e.speaker}</p>
                     
-                    <div className="space-y-1 text-sm text-gray-600 mb-6">
+                    <div className="space-y-2 text-sm text-gray-600 mb-6">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
-                        {new Date(e.date).toLocaleDateString('en-IN')}
+                        {new Date(e.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </div>
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4" />
@@ -156,13 +195,13 @@ export default function SavedEvents() {
                     <div className="flex gap-3">
                       <Link 
                         href={`/event/${e.id}`} 
-                        className="flex-1 text-center bg-emerald-600 text-white py-3 rounded-2xl font-medium hover:bg-emerald-700"
+                        className="flex-1 text-center bg-emerald-600 text-white py-3 rounded-2xl font-medium hover:bg-emerald-700 transition-colors"
                       >
                         View Details
                       </Link>
                       <button 
                         onClick={() => unsaveEvent(saved.id)}
-                        className="p-3 text-red-500 hover:bg-red-50 rounded-2xl"
+                        className="p-3 text-red-500 hover:bg-red-50 rounded-2xl transition-colors"
                       >
                         <Trash2 size={20} />
                       </button>
