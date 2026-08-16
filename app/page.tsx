@@ -1,108 +1,252 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
-import Link from "next/link";
-import { MapPin, Calendar, Clock, ArrowRight, Search } from "lucide-react";
+import React, { useState } from "react";
+import { 
+  Menu, 
+  Search, 
+  Bell, 
+  User, 
+  Home, 
+  PlusCircle, 
+  Sparkles, 
+  Bookmark, 
+  Settings, 
+  HelpCircle, 
+  LogOut, 
+  MapPin, 
+  ChevronDown, 
+  Calendar, 
+  Volume2, 
+  Clock 
+} from "lucide-react";
 
-export default function Home() {
-  const [events, setEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState("All");
-  const supabase = createClient();
-  const categories = ["All", "Lecture", "Dars", "Khutbah", "Sisters Program", "Youth"];
+export default function HomeView() {
+  const [districtOpen, setDistrictOpen] = useState(false);
 
-  useEffect(() => {
-    async function fetchEvents() {
-      const { data } = await supabase.from("events").select("*").order("date", { ascending: true }).limit(12);
-      if (data) setEvents(data);
-      setLoading(false);
+  // Mock Event Data from your Stitch canvas configuration
+  const events = [
+    {
+      id: 1,
+      title: "Weekly Spiritual Majlis",
+      speakers: "Usthad Sulaiman Al-Qasimi, Moulavi K.P",
+      time: "Today, 8:00 PM - 10:00 PM",
+      location: "Markaz Masjid, Kozhikode",
+      tag: "Live",
+      category: "Dars",
+      img: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80"
+    },
+    {
+      id: 2,
+      title: "Jumu'ah Prayer & Khutbah",
+      speakers: "Imam Abdul Rahman",
+      time: "Friday, 1:00 PM",
+      location: "Grand Mosque, Malappuram",
+      tag: null,
+      category: "Khutbah",
+      img: "https://images.unsplash.com/photo-1597935212532-c923bb36d07e?auto=format&fit=crop&w=800&q=80"
+    },
+    {
+      id: 3,
+      title: "Understanding Islamic Finance",
+      speakers: "Dr. Tariq Ali, Prof. Hameed",
+      time: "Saturday, 10:00 AM",
+      location: "Islamic Center, Ernakulam",
+      tag: null,
+      category: "Lecture",
+      img: "https://images.unsplash.com/photo-1435527173428-96c5358978ad?auto=format&fit=crop&w=800&q=80"
     }
-    fetchEvents();
-  }, []);
+  ];
 
   return (
-    <main className="min-h-screen">
-      {/* Hero Section - Wider for PC */}
-      <section className="bg-emerald-900 dark:bg-emerald-950 text-white pt-12 pb-16 px-6 md:px-12 md:rounded-3xl md:mt-6 shadow-xl relative overflow-hidden transition-colors">
-        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')]"></div>
-        <div className="max-w-3xl mx-auto text-center relative z-10">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4 tracking-tight">Discover Islamic Events in Kerala</h1>
-          <p className="text-emerald-100 md:text-xl mb-8">Find authentic lectures, dars, and community gatherings near you.</p>
-          
-          <div className="relative max-w-xl mx-auto">
-            <Search className="absolute left-4 top-4 text-gray-400 w-5 h-5" />
-            <input 
-              type="text" 
-              placeholder="Search scholars, topics, or locations..." 
-              className="w-full pl-12 pr-4 py-4 rounded-2xl text-gray-900 bg-white shadow-lg focus:ring-4 focus:ring-emerald-500/30 outline-none text-lg transition-all"
-            />
+    <div className="bg-[#0c1324] text-[#dce1fb] font-sans min-h-screen relative overflow-x-hidden selection:bg-emerald-500/30">
+      {/* Arabesque Pattern Overlay Style Trick */}
+      <div 
+        className="fixed inset-0 pointer-events-none opacity-[0.03] z-0"
+        style={{
+          backgroundImage: `url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 0 L100 50 L50 100 L0 50 Z" fill="white" stroke="white" stroke-width="1"/></svg>')`,
+          backgroundSize: "100px 100px"
+        }}
+      />
+
+      {/* Top Navbar */}
+      <header className="bg-[#0c1324]/70 backdrop-blur-xl border-b border-white/10 shadow-sm sticky top-0 flex justify-between items-center px-4 md:px-16 py-4 w-full z-50">
+        <div className="flex items-center gap-4">
+          <button className="lg:hidden text-[#bbcabf] hover:text-[#4edea3] transition-colors">
+            <Menu size={24} />
+          </button>
+          <h1 className="text-xl md:text-3xl font-bold text-[#4edea3] tracking-tight font-display">
+            DeenEvents Kerala
+          </h1>
+        </div>
+        <div className="flex items-center gap-4 md:gap-6">
+          <button className="text-[#bbcabf] hover:text-[#4edea3] transition-colors"><Search size={22} /></button>
+          <button className="text-[#bbcabf] hover:text-[#4edea3] transition-colors relative">
+            <Bell size={22} />
+            <span className="absolute top-0 right-0 w-2 h-2 bg-[#ffb4ab] rounded-full"></span>
+          </button>
+          <button className="text-[#bbcabf] hover:text-[#4edea3] transition-colors"><User size={22} /></button>
+          <button className="hidden md:flex bg-[#4edea3] text-[#003824] font-semibold px-6 py-2 rounded-full hover:shadow-[0_0_15px_rgba(78,222,163,0.5)] transition-all cursor-pointer">
+            Sign In
+          </button>
+        </div>
+      </header>
+
+      {/* Layout Wrapper */}
+      <div className="flex max-w-[1440px] mx-auto relative z-10">
+        
+        {/* Sidebar Nav (Desktop view) */}
+        <nav className="bg-[#151b2d] border-r border-white/10 h-[calc(100vh-88px)] w-64 fixed left-0 top-[77px] hidden lg:flex flex-col py-8 px-4 z-40">
+          <div className="mb-8 px-4">
+            <p className="text-xl font-bold text-[#dce1fb]">Welcome back</p>
+            <p className="text-sm text-[#bbcabf]">Salam, Brother</p>
           </div>
-        </div>
-      </section>
+          <div className="flex flex-col gap-2 flex-grow">
+            <a className="bg-[#10b981] text-[#00422b] rounded-xl flex items-center gap-3 px-4 py-3 font-semibold text-sm transition-all shadow-md" href="#">
+              <Home size={18} /> Home
+            </a>
+            <a className="text-[#bbcabf] flex items-center gap-3 px-4 py-3 font-semibold text-sm rounded-xl hover:bg-[#2e3447] hover:text-[#4edea3] transition-all" href="#">
+              <PlusCircle size={18} /> Submit Event
+            </a>
+            <a className="text-[#bbcabf] flex items-center gap-3 px-4 py-3 font-semibold text-sm rounded-xl hover:bg-[#2e3447] hover:text-[#4edea3] transition-all" href="#">
+              <Sparkles size={18} /> AI Generator
+            </a>
+            <a className="text-[#bbcabf] flex items-center gap-3 px-4 py-3 font-semibold text-sm rounded-xl hover:bg-[#2e3447] hover:text-[#4edea3] transition-all" href="#">
+              <Bookmark size={18} /> My Events
+            </a>
+            <a className="text-[#bbcabf] flex items-center gap-3 px-4 py-3 font-semibold text-sm rounded-xl hover:bg-[#2e3447] hover:text-[#4edea3] transition-all" href="#">
+              <Settings size={18} /> Settings
+            </a>
+          </div>
+          <button className="w-full bg-[#ffb95f] text-[#472a00] font-bold py-3 rounded-xl mb-4 hover:shadow-[0_0_15px_rgba(255,185,95,0.5)] transition-all cursor-pointer">
+            Submit Event
+          </button>
+          <div className="flex flex-col gap-2 mt-auto border-t border-white/10 pt-4">
+            <a className="text-[#bbcabf] flex items-center gap-3 px-4 py-3 font-semibold text-sm rounded-xl hover:bg-[#2e3447] hover:text-[#4edea3] transition-all" href="#">
+              <HelpCircle size={18} /> Help
+            </a>
+            <a className="text-[#bbcabf] flex items-center gap-3 px-4 py-3 font-semibold text-sm rounded-xl hover:bg-[#2e3447] hover:text-[#4edea3] transition-all" href="#">
+              <LogOut size={18} /> Logout
+            </a>
+          </div>
+        </nav>
 
-      <div className="px-4 md:px-8 mt-8">
-        {/* Categories Carousel */}
-        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
-          {categories.map((cat) => (
-            <button 
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`whitespace-nowrap px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
-                activeCategory === cat 
-                  ? "bg-emerald-700 text-white shadow-md" 
-                  : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-emerald-500"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 mt-6">Upcoming Events</h2>
-
-        {/* Responsive Grid: 1 col mobile, 2 col tablet, 3 col PC */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {loading ? (
-            [1, 2, 3, 4].map((n) => (
-              <div key={n} className="bg-white dark:bg-gray-900 rounded-3xl p-5 animate-pulse shadow-sm border border-gray-100 dark:border-gray-800 h-64"></div>
-            ))
-          ) : (
-            events.map((event) => (
-              <Link href={`/event/${event.id}`} key={event.id} className="block group">
-                <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm hover:shadow-xl border border-gray-100 dark:border-gray-800 transition-all duration-300 h-full flex flex-col relative overflow-hidden group-hover:-translate-y-1">
-                  
-                  {event.poster_url && (
-                    <div className="w-full h-40 mb-4 rounded-xl overflow-hidden relative">
-                      <img src={event.poster_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        {/* Main Feed Content Panel */}
+        <main className="w-full lg:ml-64 px-4 md:px-6 lg:px-16 py-8 pb-32 lg:pb-8 flex flex-col gap-12">
+          
+          {/* Header Action Row */}
+          <section className="flex flex-col gap-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <h2 className="text-2xl md:text-3xl font-bold text-[#dce1fb]">Upcoming Gatherings</h2>
+              
+              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                {/* District Filter Selector */}
+                <div className="relative">
+                  <button 
+                    onClick={() => setDistrictOpen(!districtOpen)}
+                    className="bg-[#111827]/70 backdrop-blur-md border border-white/10 text-[#dce1fb] text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2 hover:border-[#4edea3] transition-colors cursor-pointer"
+                  >
+                    <MapPin size={16} className="text-[#4edea3]" />
+                    All Districts
+                    <ChevronDown size={16} />
+                  </button>
+                  {districtOpen && (
+                    <div className="absolute top-full left-0 mt-2 w-48 bg-[#2e3447] border border-white/10 rounded-xl shadow-xl z-20 overflow-hidden">
+                      <ul className="py-1 text-sm font-medium">
+                        <li className="px-4 py-2 hover:bg-[#191f31] cursor-pointer">Malappuram</li>
+                        <li className="px-4 py-2 hover:bg-[#191f31] cursor-pointer">Kozhikode</li>
+                        <li className="px-4 py-2 hover:bg-[#191f31] cursor-pointer">Ernakulam</li>
+                      </ul>
                     </div>
                   )}
+                </div>
 
-                  <div className="absolute top-4 right-4 px-3 py-1 bg-white/90 backdrop-blur-sm text-emerald-700 text-xs font-bold rounded-full shadow-sm z-10">
-                    Upcoming
+                {/* Category Quick Pills */}
+                <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">
+                  <button className="bg-[#4edea3] text-[#003824] text-xs font-bold px-4 py-2 rounded-full shadow-sm">All</button>
+                  <button className="bg-[#111827]/70 backdrop-blur-md border border-white/10 text-[#bbcabf] text-xs font-semibold px-4 py-2 rounded-full hover:text-white transition-colors">Dars</button>
+                  <button className="bg-[#111827]/70 backdrop-blur-md border border-white/10 text-[#bbcabf] text-xs font-semibold px-4 py-2 rounded-full hover:text-white transition-colors">Khutbah</button>
+                  <button className="bg-[#111827]/70 backdrop-blur-md border border-white/10 text-[#bbcabf] text-xs font-semibold px-4 py-2 rounded-full hover:text-white transition-colors">Lecture</button>
+                </div>
+
+                {/* Date Trigger Button */}
+                <button className="bg-[#111827]/70 backdrop-blur-md border border-white/10 text-[#dce1fb] text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2 hover:border-[#4edea3] transition-colors cursor-pointer">
+                  <Calendar size={16} />
+                  Any Date
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* Dynamic Grid Mapping */}
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {events.map((event) => (
+              <article 
+                key={event.id} 
+                className="bg-[#111827]/70 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden hover:border-amber-500/40 hover:shadow-[0_0_20px_rgba(245,158,11,0.2)] transition-all duration-300 flex flex-col group relative"
+              >
+                <div className="h-48 bg-[#191f31] relative overflow-hidden">
+                  <img 
+                    alt={event.title} 
+                    className="w-full h-full object-cover opacity-40 group-hover:opacity-100 transition-all duration-500 transform group-hover:scale-105" 
+                    src={event.img}
+                  />
+                  <div className="absolute top-4 right-4 bg-[#0c1324]/80 backdrop-blur-md rounded-full p-2 text-[#dce1fb] hover:text-[#4edea3] cursor-pointer transition-colors border border-white/10">
+                    <Bookmark size={16} />
                   </div>
-
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors line-clamp-2">
+                  <div className="absolute bottom-4 left-4 flex gap-2">
+                    {event.tag && (
+                      <span className="bg-[#ffb95f] text-[#472a00] text-xs font-bold px-2 py-1 rounded-md shadow-sm">{event.tag}</span>
+                    )}
+                    <span className="bg-[#0c1324]/80 backdrop-blur-md text-[#dce1fb] border border-white/10 text-xs font-semibold px-2 py-1 rounded-md">
+                      {event.category}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="p-6 flex flex-col gap-4 flex-grow">
+                  <h3 className="text-lg font-bold text-[#dce1fb] group-hover:text-[#4edea3] transition-colors">
                     {event.title}
                   </h3>
-                  <p className="text-emerald-600 dark:text-emerald-400 font-medium text-sm mb-4">{event.speaker}</p>
-                  
-                  <div className="mt-auto space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      <span>{new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • {event.time}</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-[#bbcabf] text-xs font-medium">
+                      <Volume2 size={14} className="text-[#4edea3]" />
+                      <span className="truncate">{event.speakers}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span className="truncate">{event.location}, {event.district}</span>
+                    <div className="flex items-center gap-2 text-[#bbcabf] text-xs font-medium">
+                      <Clock size={14} />
+                      <span>{event.time}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[#bbcabf] text-xs font-medium">
+                      <MapPin size={14} />
+                      <span className="truncate">{event.location}</span>
                     </div>
                   </div>
                 </div>
-              </Link>
-            ))
-          )}
-        </div>
+              </article>
+            ))}
+          </section>
+        </main>
       </div>
-    </main>
+
+      {/* Bottom Navigation (Mobile Only view layout setup) */}
+      <nav className="bg-[#2e3447]/80 backdrop-blur-2xl border-t border-white/10 shadow-2xl fixed bottom-0 rounded-t-xl lg:hidden left-0 w-full z-50 flex justify-around items-center px-4 py-3">
+        <a className="flex flex-col items-center justify-center text-[#4edea3] font-bold transition-all" href="#">
+          <Home size={20} />
+          <span className="text-[10px] mt-1">Home</span>
+        </a>
+        <a className="flex flex-col items-center justify-center text-[#bbcabf] hover:text-[#4edea3] transition-colors" href="#">
+          <PlusCircle size={20} />
+          <span className="text-[10px] mt-1">Submit</span>
+        </a>
+        <a className="flex flex-col items-center justify-center text-[#bbcabf] hover:text-[#4edea3] transition-colors" href="#">
+          <Sparkles size={20} />
+          <span className="text-[10px] mt-1">AI Studio</span>
+        </a>
+        <a className="flex flex-col items-center justify-center text-[#bbcabf] hover:text-[#4edea3] transition-colors" href="#">
+          <User size={20} />
+          <span className="text-[10px] mt-1">Profile</span>
+        </a>
+      </nav>
+    </div>
   );
 }
