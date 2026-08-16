@@ -1,289 +1,298 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { createClient } from "../../utils/supabase/client";
-import Link from "next/link";
-import { 
-  Calendar, MapPin, User, FileText, ShieldCheck, 
-  ArrowLeft, Loader2, Sparkles, Languages, Map 
+import { useRouter } from "next/navigation";
+import { 
+  Calendar, Clock, MapPin, User, Building, 
+  FileText, Upload, Loader2, ArrowLeft, CheckCircle2, 
+  Plus, X, Link as LinkIcon 
 } from "lucide-react";
+import Link from "next/link";
 
-export default function SubmitEventPage() {
-  const router = useRouter();
-  const supabase = createClient();
-  
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [submitting, setSubmitting] = useState(false);
+export default function SubmitEvent() {
+  const router = useRouter();
+  const supabase = createClient();
 
-  // --- FORM STATES ---
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [speaker, setSpeaker] = useState("");
-  const [venue, setVenue] = useState("");
-  const [district, setDistrict] = useState("Kozhikode");
-  const [eventDate, setEventDate] = useState(""); 
-  const [eventTime, setEventTime] = useState("");
-  const [category, setCategory] = useState("Academic Lectures");
-  const [sistersOnly, setSistersOnly] = useState(false);
-  const [familyFriendly, setFamilyFriendly] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [posterPreview, setPosterPreview] = useState<string | null>(null);
+  const [smartText, setSmartText] = useState("");
 
-  // --- ADVANCED FEATURE STATES ---
-  const [selectedLang, setSelectedLang] = useState<"en" | "ml" | "ar">("en");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [posterUrlInput, setPosterUrlInput] = useState("");
+  // Upgraded State
+  const [formData, setFormData] = useState({
+    title: "",
+    speakers: [""],      // Changed to array
+    organizers: [""],    // Changed to array
+    description: "",
+    date: "",
+    time: "",
+    location: "",
+    district: "Malappuram",
+    category: "Lecture",
+    requiresRegistration: false, // New boolean
+    registrationLink: "",        // New link
+  });
 
-  const translations = {
-    en: { heading: "Publish Structural Event Listing", sub: "Fill out verification blocks. All generated directories immediately propagate into regional feeds." },
-    ml: { heading: "കേരള ഇസ്ലാമിക് ഇവന്റ് രജിസ്ട്രി", sub: "വിവരങ്ങൾ പൂരിപ്പിക്കുക. നിങ്ങൾ നൽകുന്ന വിവരങ്ങൾ തത്സമയം ഫീഡിൽ ലഭ്യമാകും." },
-    ar: { heading: "نشر دليل فعاليات كيرالا", sub: "املأ بيانات التحقق. يتم نشر جميع الفعاليات على الفور في الخلاصات الإقليمية." }
-  };
+  const districts = [
+    "Kasargod", "Kannur", "Wayanad", "Kozhikode", "Malappuram", 
+    "Palakkad", "Thrissur", "Ernakulam", "Idukki", "Kottayam", 
+    "Alappuzha", "Pathanamthitta", "Kollam", "Thiruvananthapuram"
+  ];
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push("/login?callback=/submit");
-      } else {
-        setUser(session.user);
-        setLoading(false);
-      }
-    };
-    checkAuth();
-  }, [router, supabase]);
+  const categories = ["Lecture", "Dars", "Khutbah", "Conference", "Family Event", "Sisters Program", "Youth Program", "Quran Class"];
 
-  const handleAiPosterScan = async () => {
-    if (!posterUrlInput) return alert("Please provide an image/poster asset link URL first.");
-    setAiLoading(true);
-    
-    setTimeout(() => {
-      setTitle("Advanced Malabar Educational Symposium 2026");
-      setSpeaker("Usthad Muhammad Al-Qasimi");
-      setVenue("Grand Auditorium, Near Markaz Complex");
-      setDescription("An intensive weekend study covering text propagation across South Asia. Parking is managed inside the eastern gates. Food options provided.");
-      setEventTime("09:00 AM - 05:00 PM");
-      setCategory("Academic Lectures");
-      setAiLoading(false);
-    }, 1500);
-  };
+  // Standard inputs
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
+    setFormData({ ...formData, [e.target.name]: value });
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return alert("Unauthorized access initialization halted.");
-    
-    setSubmitting(true);
-    let fallbackImage = "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200"; 
-    
-    if (category === "Youth Programs") {
-      fallbackImage = "https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&q=80&w=1200";
-    } else if (category === "Women Only" || sistersOnly) {
-      fallbackImage = "https://images.unsplash.com/photo-1591604021695-0c69b7c05981?auto=format&fit=crop&q=80&w=1200";
-    }
+  // Dynamic Array Handlers
+  const handleArrayChange = (index: number, field: "speakers" | "organizers", value: string) => {
+    const newArray = [...formData[field]];
+    newArray[index] = value;
+    setFormData({ ...formData, [field]: newArray });
+  };
 
-    const { error } = await supabase.from("events").insert([
-      {
-        title,
-        description,
-        speaker,
-        venue,
-        district,
-        date: eventDate, 
-        time: eventTime,
-        category,
-        sisters_only: sistersOnly,
-        family_friendly: familyFriendly,
-        image_url: fallbackImage,
-        user_id: user.id
-      }
-    ]);
+  const addArrayItem = (field: "speakers" | "organizers") => {
+    setFormData({ ...formData, [field]: [...formData[field], ""] });
+  };
 
-    setSubmitting(false);
-    if (error) {
-      alert(`Submission Fault: ${error.message}`);
-    } else {
-      router.push("/");
-    }
-  };
+  const removeArrayItem = (index: number, field: "speakers" | "organizers") => {
+    const newArray = formData[field].filter((_, i) => i !== index);
+    setFormData({ ...formData, [field]: newArray });
+  };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#020408] flex flex-col items-center justify-center gap-3">
-        <Loader2 className="text-emerald-500 animate-spin" size={24} />
-        <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Evaluating Credentials...</span>
-      </div>
-    );
-  }
+  // File Handler
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setPosterFile(file);
+      setPosterPreview(URL.createObjectURL(file));
+    }
+  };
 
-  return (
-    <div className="min-h-screen bg-[#020408] text-slate-100 pb-12">
-      <div className="h-1.5 w-full bg-gradient-to-r from-emerald-600 to-teal-600" />
-      
-      <header className="border-b border-slate-900 bg-[#020408]/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
-            <ArrowLeft size={14} /> Feed Dashboard
-          </Link>
-          
-          <div className="flex items-center gap-1 bg-slate-950 border border-slate-900 p-1 rounded-lg">
-            <Languages size={12} className="text-slate-500 mx-1" />
-            {(["en", "ml", "ar"] as const).map((lang) => (
-              <button
-                key={lang}
-                type="button"
-                onClick={() => setSelectedLang(lang)}
-                className={`text-[10px] px-2 py-0.5 rounded uppercase font-bold transition-all ${selectedLang === lang ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"}`}
-              >
-                {lang}
-              </button>
-            ))}
-          </div>
+  // AI Parser
+  const handleAIParse = () => {
+    if (!smartText) return;
+    let newFormData = { ...formData };
+    
+    const dateMatch = smartText.match(/\b\d{1,2}[-./]\d{1,2}[-./]?\d{0,4}\b/);
+    if (dateMatch) newFormData.date = dateMatch[0]; 
 
-          <div className="hidden sm:flex items-center gap-1 text-[10px] font-black text-emerald-400 uppercase bg-emerald-950/40 border border-emerald-900/30 px-2.5 py-1 rounded-lg">
-            <ShieldCheck size={12} /> Authorized: {user?.email?.split("@")[0]}
-          </div>
-        </div>
-      </header>
+    const timeMatch = smartText.match(/\b\d{1,2}:\d{2}\s?(AM|PM|am|pm)?\b/i) || smartText.match(/\b(?:After|Before)?\s?(Fajr|Zuhr|Asr|Maghrib|Isha)\b/i);
+    if (timeMatch) newFormData.time = timeMatch[0];
 
-      <main className="max-w-5xl mx-auto px-4 mt-8 grid lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-[#040811] border border-slate-900 rounded-2xl p-4 shadow-xl relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-3 opacity-10 pointer-events-none">
-              <Sparkles size={60} className="text-emerald-400" />
-            </div>
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 mb-2 text-emerald-400">
-              <Sparkles size={13} /> AI Poster Core Scanner
-            </h3>
-            <p className="text-[11px] text-slate-400 leading-relaxed mb-4">
-              Have an event flyer or poster image URL? Paste it below to run our automated OCR text extractor.
-            </p>
-            <div className="space-y-2">
-              <input 
-                type="text" 
-                placeholder="Paste direct poster asset .jpg/.png URL..." 
-                value={posterUrlInput}
-                onChange={(e) => setPosterUrlInput(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-900 rounded-xl p-2.5 text-[11px] text-white focus:outline-none focus:border-emerald-500/40 transition-all"
-              />
-              <button
-                type="button"
-                onClick={handleAiPosterScan}
-                disabled={aiLoading}
-                className="w-full h-8 bg-slate-900 border border-slate-800 hover:border-emerald-500/40 text-white text-[11px] font-bold rounded-xl transition-all flex items-center justify-center gap-2 group-hover:bg-slate-950"
-              >
-                {aiLoading ? <Loader2 size={12} className="animate-spin text-emerald-400" /> : "Parse Image Layout Components"}
-              </button>
-            </div>
-          </div>
+    // Grab first speaker found
+    const speakerMatch = smartText.match(/(?:Usthad|Moulavi|Sheikh|Shaykh)\s+([A-Za-z\s]+)/i);
+    if (speakerMatch) newFormData.speakers = [speakerMatch[0].trim()];
+    
+    newFormData.description = smartText;
+    setFormData(newFormData);
+    alert("✨ AI successfully extracted details from your text!");
+    setSmartText(""); 
+  };
 
-          <div className="bg-[#040811] border border-slate-900 rounded-2xl p-4 shadow-xl">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 mb-2">
-              <Map size={13} className="text-teal-400" /> Kerala Regional District Mesh
-            </h3>
-            <p className="text-[11px] text-slate-400 mb-3">
-              Tap directly inside the regional community matrices to quickly assign geographic anchors.
-            </p>
-            <div className="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-900/60 max-h-48 overflow-y-auto">
-              {["Kozhikode", "Malappuram", "Ernakulam", "Thiruvananthapuram", "Kannur", "Palakkad", "Thrissur"].map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setDistrict(d)}
-                  className={`p-2 rounded-lg border text-left transition-all flex flex-col gap-0.5 ${district === d ? "bg-emerald-950/40 border-emerald-500 text-white" : "bg-[#040811]/50 border-slate-900 text-slate-400 hover:border-slate-800 hover:text-white"}`}
-                >
-                  <span className="text-[10px] font-bold">{d}</span>
-                  <span className="text-[8px] opacity-60 uppercase tracking-widest font-mono">
-                    {d === "Kozhikode" || d === "Malappuram" || d === "Kannur" ? "North Zone" : "Central/South"}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-        <div className="lg:col-span-8">
-          <form onSubmit={handleSubmit} className="bg-[#040811] border border-slate-900 rounded-2xl p-6 space-y-6 shadow-2xl">
-            <div className="border-b border-slate-900 pb-4">
-              <h2 className="text-lg font-black text-white uppercase tracking-tight">
-                {translations[selectedLang].heading}
-              </h2>
-              <p className="text-xs text-slate-500 mt-1">
-                {translations[selectedLang].sub}
-              </p>
-            </div>
+    try {
+      let posterUrl = "";
+      if (posterFile) {
+        const fileExt = posterFile.name.split(".").pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from("posters").upload(fileName, posterFile);
+        if (uploadError) throw uploadError;
+        const { data } = supabase.storage.from("posters").getPublicUrl(fileName);
+        posterUrl = data.publicUrl;
+      }
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1">
-                <FileText size={12}/> Gathering Title *
-              </label>
-              <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., The Foundations of Classical Malabar Jurisprudence" className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500/40 transition-colors" />
-            </div>
+      // Clean arrays (remove empty strings)
+      const cleanSpeakers = formData.speakers.filter(s => s.trim() !== "");
+      const cleanOrganizers = formData.organizers.filter(o => o.trim() !== "");
 
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1"><User size={12}/> Lead Speaker / Orator</label>
-                <input type="text" required value={speaker} onChange={(e) => setSpeaker(e.target.value)} placeholder="e.g., Dr. Anas Al-Yousufi" className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500/40 transition-colors" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1"><MapPin size={12}/> Regional District Node</label>
-                <select value={district} onChange={(e) => setDistrict(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-slate-300 focus:outline-none focus:border-emerald-500/40 transition-colors">
-                  {["Kozhikode", "Malappuram", "Ernakulam", "Thiruvananthapuram", "Kannur", "Palakkad", "Thrissur"].map(d => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+      const { error: insertError } = await supabase.from("events").insert([
+        {
+          title: formData.title,
+          speakers: cleanSpeakers, // Requires DB array column
+          organizers: cleanOrganizers, // Requires DB array column
+          description: formData.description,
+          date: formData.date, 
+          time: formData.time,
+          location: formData.location,
+          district: formData.district,
+          category: formData.category,
+          requires_registration: formData.requiresRegistration,
+          registration_link: formData.registrationLink,
+          poster_url: posterUrl,
+        },
+      ]);
 
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1">
-                  <Calendar size={12} className="text-emerald-500" /> Event Calendar Date *
-                </label>
-                <input type="date" required value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white uppercase focus:outline-none focus:border-emerald-500/40 transition-colors" style={{ colorScheme: "dark" }} />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1">Time Schedule Slot *</label>
-                <input type="text" required value={eventTime} onChange={(e) => setEventTime(e.target.value)} placeholder="e.g., 4:30 PM - 8:30 PM" className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500/40 transition-colors" />
-              </div>
-            </div>
+      if (insertError) throw insertError;
+      setSuccess(true);
+      setTimeout(() => router.push("/"), 2000);
+    } catch (error: any) {
+      alert(error.message || "Something went wrong creating the event.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Primary Content Category classification</label>
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-slate-300 focus:outline-none focus:border-emerald-500/40 transition-colors">
-                {["Academic Lectures", "Youth Programs", "Quranic Intensive Courses", "Women Only"].map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center p-4 transition-colors">
+        <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-xl max-w-md w-full text-center border border-gray-100 dark:border-gray-800 transition-colors">
+          <CheckCircle2 className="w-16 h-16 text-emerald-600 mx-auto mb-4 animate-bounce" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Event Submitted!</h1>
+          <p className="text-gray-600 dark:text-gray-400">Your event has been listed successfully. Redirecting home...</p>
+        </div>
+      </div>
+    );
+  }
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Extended Description Details</label>
-              <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Provide agenda protocols, parking, food arrangements if applicable..." className="w-full bg-slate-950 border border-slate-900 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500/40 transition-colors resize-none" />
-            </div>
+  return (
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24 transition-colors">
+      <div className="bg-emerald-900 dark:bg-emerald-950 text-white pt-10 pb-20 px-4 md:px-8 md:pt-12 md:rounded-3xl md:mx-4 md:mt-4 relative overflow-hidden rounded-b-[30px] shadow-lg transition-colors">
+        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')]"></div>
+        <div className="max-w-2xl mx-auto relative z-10">
+          <Link href="/" className="flex items-center gap-2 text-emerald-100 mb-4 hover:text-white w-max">
+            <ArrowLeft className="w-5 h-5" /> Back to Home
+          </Link>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">Submit Islamic Event</h1>
+          <p className="text-emerald-100 text-sm md:text-base">Fill in the details to publish your event across Kerala.</p>
+        </div>
+      </div>
 
-            <div className="grid sm:grid-cols-2 gap-4 bg-slate-950/40 border border-slate-900/60 p-4 rounded-xl">
-              <label className="flex items-center gap-3 cursor-pointer select-none">
-                <input type="checkbox" checked={sistersOnly} onChange={(e) => setSistersOnly(e.target.checked)} className="rounded bg-slate-950 border-slate-900 text-emerald-500 focus:ring-0 w-4 h-4" />
-                <div>
-                  <span className="text-xs font-bold text-white block">Sisters Only Program</span>
-                  <span className="text-[10px] text-slate-500">Locks entry context specifically to women's galleries.</span>
-                </div>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer select-none">
-                <input type="checkbox" checked={familyFriendly} onChange={(e) => setFamilyFriendly(e.target.checked)} className="rounded bg-slate-950 border-slate-900 text-emerald-500 focus:ring-0 w-4 h-4" />
-                <div>
-                  <span className="text-xs font-bold text-white block">Family Friendly Space</span>
-                  <span className="text-[10px] text-slate-500">Indicates integrated configurations for safe attendance.</span>
-                </div>
-              </label>
-            </div>
+      <div className="max-w-2xl mx-auto px-4 -mt-10 relative z-20">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800 space-y-5 transition-colors">
+          
+          {/* Smart Paste Input... */}
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-4 md:p-5 mb-6 transition-colors">
+            <h3 className="text-sm font-bold text-emerald-800 dark:text-emerald-400 mb-2 flex items-center gap-2">✨ AI Smart Auto-Fill</h3>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input type="text" value={smartText} onChange={(e) => setSmartText(e.target.value)} placeholder="Paste WhatsApp event forward here..." className="flex-1 px-4 py-3 text-sm rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-white dark:bg-gray-950 outline-none focus:ring-2 focus:ring-emerald-500 dark:text-gray-100 transition-colors" />
+              <button type="button" onClick={handleAIParse} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl text-sm font-bold shadow-sm transition-colors">Auto-Fill</button>
+            </div>
+          </div>
 
-            <button type="submit" disabled={submitting} className="w-full h-11 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-900 disabled:text-slate-600 transition-colors rounded-xl font-black text-xs uppercase tracking-wider text-white flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20">
-              {submitting ? <Loader2 className="animate-spin" size={14} /> : "Transmit to Active Live Directories"}
-            </button>
-          </form>
-        </div>
-      </main>
-    </div>
-  );
+          {/* Poster Upload... */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Event Poster</label>
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-4 text-center bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative cursor-pointer">
+              <input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" />
+              {posterPreview ? (
+                <img src={posterPreview} alt="Preview" className="h-48 md:h-64 w-full object-contain rounded-lg" />
+              ) : (
+                <div className="py-6 flex flex-col items-center"><Upload className="w-8 h-8 text-gray-400 mb-2" /><span className="text-sm font-medium text-gray-600 dark:text-gray-400">Click to upload official poster</span></div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Event Title</label>
+            <input type="text" name="title" required value={formData.title} onChange={handleInputChange} placeholder="e.g., Grand Islamic Lecture" className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 outline-none transition-colors" />
+          </div>
+
+          {/* Dynamic Speakers Section */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Speakers / Scholars</label>
+            <div className="space-y-3">
+              {formData.speakers.map((speaker, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <User className="absolute left-3.5 top-3.5 text-gray-400 dark:text-gray-500 w-5 h-5" />
+                    <input type="text" required={index === 0} value={speaker} onChange={(e) => handleArrayChange(index, "speakers", e.target.value)} placeholder="Name of the speaker" className="w-full pl-11 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 outline-none transition-colors" />
+                  </div>
+                  {formData.speakers.length > 1 && (
+                    <button type="button" onClick={() => removeArrayItem(index, "speakers")} className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors">
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button type="button" onClick={() => addArrayItem("speakers")} className="flex items-center gap-1.5 text-sm font-bold text-emerald-600 dark:text-emerald-500 hover:text-emerald-700 transition-colors">
+                <Plus className="w-4 h-4" /> Add another speaker
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Category & District Inputs... */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Date</label>
+              <input type="date" name="date" required value={formData.date} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 outline-none text-sm transition-colors [&::-webkit-calendar-picker-indicator]:dark:invert" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Time</label>
+              <input type="text" name="time" required value={formData.time} onChange={handleInputChange} placeholder="e.g., After Asr" className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 outline-none text-sm transition-colors" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Venue / Specific Address</label>
+            <input type="text" name="location" required value={formData.location} onChange={handleInputChange} placeholder="e.g., Town Masjid Auditorium" className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 outline-none transition-colors" />
+          </div>
+
+          {/* Dynamic Organizers Section */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Organizers / Committees</label>
+            <div className="space-y-3">
+              {formData.organizers.map((organizer, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Building className="absolute left-3.5 top-3.5 text-gray-400 dark:text-gray-500 w-5 h-5" />
+                    <input type="text" value={organizer} onChange={(e) => handleArrayChange(index, "organizers", e.target.value)} placeholder="e.g., Youth Coalition Malappuram" className="w-full pl-11 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 outline-none transition-colors" />
+                  </div>
+                  {formData.organizers.length > 1 && (
+                    <button type="button" onClick={() => removeArrayItem(index, "organizers")} className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors">
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button type="button" onClick={() => addArrayItem("organizers")} className="flex items-center gap-1.5 text-sm font-bold text-emerald-600 dark:text-emerald-500 hover:text-emerald-700 transition-colors">
+                <Plus className="w-4 h-4" /> Add another organizer
+              </button>
+            </div>
+          </div>
+
+          {/* Payment & Registration Toggle */}
+          <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 p-4 rounded-xl transition-colors">
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <input 
+                type="checkbox" 
+                name="requiresRegistration" 
+                checked={formData.requiresRegistration} 
+                onChange={handleInputChange} 
+                className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-emerald-500" 
+              />
+              <span className="font-semibold text-gray-800 dark:text-gray-200">Requires Registration / Tickets?</span>
+            </label>
+            
+            {formData.requiresRegistration && (
+              <div className="mt-4">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Registration or Payment Link</label>
+                <div className="relative">
+                  <LinkIcon className="absolute left-3.5 top-3.5 text-gray-400 dark:text-gray-500 w-5 h-5" />
+                  <input type="url" name="registrationLink" required={formData.requiresRegistration} value={formData.registrationLink} onChange={handleInputChange} placeholder="https://forms.gle/... or Ticket link" className="w-full pl-11 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 outline-none transition-colors" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Full Event Description</label>
+            <textarea name="description" rows={5} value={formData.description} onChange={handleInputChange} placeholder="Provide topics, dynamic timelines, special arrangements for sisters, food facilities, etc." className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 outline-none resize-none transition-colors" />
+          </div>
+
+          <button type="submit" disabled={loading} className="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold shadow-md hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-lg md:text-base mt-2">
+            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Publish Event"}
+          </button>
+        </form>
+      </div>
+    </main>
+  );
 }

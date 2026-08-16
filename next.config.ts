@@ -8,5 +8,7 @@ const nextConfig: NextConfig = {
 
 export default nextConfig;
 
-// This correctly calls the updated dev server function for Cloudflare
-import('@opennextjs/cloudflare').then(m => m.initOpenNextCloudflareForDev());
+// This initializes the dev environment using the correct method name recognized by your package
+if (process.env.NODE_ENV === "development") {
+  import('@opennextjs/cloudflare').then(m => m.initOpenNextCloudflareForDev());
+}
